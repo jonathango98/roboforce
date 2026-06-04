@@ -339,6 +339,67 @@
 
 <script>
   let opCount = 0;
+  let currentDate = '';
+  let isSwitchingDate = false;
+
+  const DEFAULT_OPERATORS = [
+    { name: 'Jonathan' },
+    { name: 'Donovon' },
+    { name: 'Chai' },
+    { name: 'Charles' },
+  ];
+
+  function storageKey(date) {
+    return `shift-report:${date}`;
+  }
+
+  function collectData() {
+    const operators = [];
+    document.querySelectorAll('.operator-block').forEach(el => {
+      const idPart = el.id.split('-')[1];
+      operators.push({
+        name:  document.getElementById(`op-name-${idPart}`).value,
+        good:  document.getElementById(`op-good-${idPart}`).value,
+        bad:   document.getElementById(`op-bad-${idPart}`).value,
+        perf:  document.getElementById(`op-perf-${idPart}`).value,
+        notes: document.getElementById(`op-notes-${idPart}`).value,
+      });
+    });
+    return {
+      shift:     document.getElementById('shift').value,
+      operators,
+      keyEvents: document.getElementById('keyEvents').value,
+      issues:    document.getElementById('issues').value,
+      actions:   document.getElementById('actions').value,
+      followup:  document.getElementById('followup').value,
+    };
+  }
+
+  function saveCurrentDate() {
+    if (!currentDate) return;
+    localStorage.setItem(storageKey(currentDate), JSON.stringify(collectData()));
+  }
+
+  function loadDate(date) {
+    isSwitchingDate = true;
+    const raw = localStorage.getItem(storageKey(date));
+    const data = raw ? JSON.parse(raw) : null;
+
+    document.getElementById('shift').value = data?.shift || 'Morning';
+    document.getElementById('keyEvents').value = data?.keyEvents || '';
+    document.getElementById('issues').value    = data?.issues    || '';
+    document.getElementById('actions').value   = data?.actions   || '';
+    document.getElementById('followup').value  = data?.followup  || '';
+
+    document.getElementById('operators').innerHTML = '';
+    opCount = 0;
+    const ops = data?.operators?.length ? data.operators : DEFAULT_OPERATORS;
+    ops.forEach(op => addOperator(op));
+
+    currentDate = date;
+    isSwitchingDate = false;
+    generatePreview();
+  }
 
   function addOperator(defaults = {}) {
     opCount++;
@@ -368,6 +429,7 @@
     const el = document.getElementById(`op-${id}`);
     if (el) el.remove();
     autoNumber();
+    saveCurrentDate();
   }
 
   function autoNumber() {
@@ -394,10 +456,10 @@
 
     document.querySelectorAll('.operator-block').forEach(el => {
       const idPart = el.id.split('-')[1];
-      const name = document.getElementById(`op-name-${idPart}`).value.trim() || '—';
-      const good = document.getElementById(`op-good-${idPart}`).value.trim() || '—';
-      const bad = document.getElementById(`op-bad-${idPart}`).value.trim() || '—';
-      const perf = document.getElementById(`op-perf-${idPart}`).value.trim() || '—';
+      const name  = document.getElementById(`op-name-${idPart}`).value.trim() || '—';
+      const good  = document.getElementById(`op-good-${idPart}`).value.trim() || '—';
+      const bad   = document.getElementById(`op-bad-${idPart}`).value.trim() || '—';
+      const perf  = document.getElementById(`op-perf-${idPart}`).value.trim() || '—';
       const notes = document.getElementById(`op-notes-${idPart}`).value.trim();
       lines.push(`  - Operator name: ${name}`);
       lines.push(`    - Quantity (Good/Bad): ${good}/${bad}`);
@@ -408,9 +470,9 @@
     lines.push('What happened today');
 
     const keyEvents = document.getElementById('keyEvents').value.trim();
-    const issues = document.getElementById('issues').value.trim();
-    const actions = document.getElementById('actions').value.trim();
-    const followup = document.getElementById('followup').value.trim();
+    const issues    = document.getElementById('issues').value.trim();
+    const actions   = document.getElementById('actions').value.trim();
+    const followup  = document.getElementById('followup').value.trim();
 
     lines.push(`- Key events:${keyEvents ? ' ' + keyEvents : ''}`);
     lines.push(`- Issues or delays:${issues ? ' ' + issues : ''}`);
@@ -435,17 +497,23 @@
     });
   }
 
+  // Auto-save on any input change
+  document.addEventListener('input', () => { if (!isSwitchingDate) saveCurrentDate(); });
+  document.addEventListener('change', e => {
+    if (e.target.id === 'reportDate') {
+      saveCurrentDate();
+      loadDate(e.target.value);
+    } else if (!isSwitchingDate) {
+      saveCurrentDate();
+    }
+  });
+
+  // Init
   const today = new Date();
-  const pad = n => String(n).padStart(2,'0');
-  document.getElementById('reportDate').value =
-    `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
-
-  addOperator({ name: 'Jonathan' });
-  addOperator({ name: 'Donovon' });
-  addOperator({ name: 'Chai' });
-  addOperator({ name: 'Charles' });
-
-  generatePreview();
+  const pad = n => String(n).padStart(2, '0');
+  const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+  document.getElementById('reportDate').value = todayStr;
+  loadDate(todayStr);
 </script>
 </body>
 </html>

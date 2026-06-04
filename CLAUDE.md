@@ -4,7 +4,7 @@ Local admin tools for RF operations.
 
 ## Committing changes
 
-After every confirmed change (user approves or accepts the result), commit it to the local git repo:
+Only commit when the user explicitly asks. When asked:
 
 1. Stage the changed files specifically (avoid `git add -A`)
 2. Write a concise commit message describing what changed and why
