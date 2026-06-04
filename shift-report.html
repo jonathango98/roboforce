@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Shift Report</title>
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --surface-sub: #faf9f7;
+    --border: #e8e3db;
+    --border-mid: #d6d0c6;
+    --text: #1a1714;
+    --text-2: #5c5652;
+    --text-3: #9c9590;
+    --accent: #c2820c;
+    --accent-h: #a36c09;
+    --accent-bg: #fef3c7;
+    --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.05);
+    --radius: 12px;
+    --radius-sm: 7px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 28px 20px 56px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+
+  .page-header .date-chip {
+    font-size: 12px;
+    color: var(--text-3);
+    font-weight: 500;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-3);
+  }
+
+  .row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .field-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-2);
+    letter-spacing: 0.01em;
+  }
+
+  input[type="date"],
+  input[type="text"],
+  input[type="number"],
+  select,
+  textarea {
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--surface-sub);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 11px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input[type="date"]:focus,
+  input[type="text"]:focus,
+  input[type="number"]:focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--accent);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(194,130,12,0.12);
+  }
+
+  input[type="number"] { width: 96px; }
+  input[type="text"].name-field { width: 168px; }
+  select { width: 148px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239c9590' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; cursor: pointer; }
+
+  textarea.notes-field {
+    width: 100%;
+    min-height: 64px;
+    resize: vertical;
+    line-height: 1.5;
+  }
+  textarea.event-field {
+    width: 100%;
+    min-height: 80px;
+    resize: vertical;
+    line-height: 1.5;
+  }
+
+  .operator-block {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: var(--surface-sub);
+    position: relative;
+    transition: border-color .15s;
+  }
+
+  .operator-block:hover { border-color: var(--border-mid); }
+
+  .op-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .op-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .btn-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-3);
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px 4px;
+    transition: color .15s;
+    border-radius: 4px;
+  }
+  .btn-remove:hover { color: #ef4444; background: #fef2f2; }
+
+  .btn {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    padding: 8px 16px;
+    border: none;
+    transition: background .15s, box-shadow .15s, transform .1s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn:active { transform: scale(0.98); }
+
+  .btn-secondary {
+    background: var(--surface);
+    border: 1px solid var(--border-mid);
+    color: var(--text-2);
+  }
+  .btn-secondary:hover { background: var(--bg); border-color: var(--accent); color: var(--accent); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(194,130,12,0.3);
+  }
+  .btn-primary:hover { background: var(--accent-h); }
+
+  .btn-copy {
+    background: #166534;
+    color: #fff;
+    align-self: flex-end;
+    font-size: 13px;
+    padding: 9px 20px;
+    box-shadow: 0 1px 3px rgba(22,101,52,0.25);
+  }
+  .btn-copy:hover { background: #14532d; }
+  .btn-copy.copied { background: #22c55e; color: #fff; }
+
+  .preview-box {
+    background: #13120f;
+    color: #c9c4bb;
+    border-radius: 9px;
+    padding: 18px 20px;
+    font-family: 'SF Mono', 'Fira Mono', 'Consolas', monospace;
+    font-size: 12.5px;
+    line-height: 1.75;
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 130px;
+    border: 1px solid #242220;
+  }
+
+  .actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .section-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0 -22px;
+  }
+
+  #operators { display: flex; flex-direction: column; gap: 10px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="page-header">
+    <h1>Shift Report</h1>
+  </div>
+
+  <!-- Header -->
+  <div class="card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-title">Report Header</div></div>
+    <div class="row">
+      <div class="field">
+        <div class="field-label">Date</div>
+        <input type="date" id="reportDate" />
+      </div>
+      <div class="field">
+        <div class="field-label">Shift</div>
+        <select id="shift">
+          <option>Morning</option>
+          <option>Afternoon</option>
+          <option>Night</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Operators -->
+  <div class="card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-title">Operator Summary</div></div>
+    <div id="operators"></div>
+    <button class="btn btn-secondary" onclick="addOperator()">+ Add Operator</button>
+  </div>
+
+  <!-- What Happened -->
+  <div class="card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-title">What Happened Today</div></div>
+    <div class="field">
+      <div class="field-label">Key events</div>
+      <textarea class="event-field" id="keyEvents" placeholder="Describe key events..."></textarea>
+    </div>
+    <div class="field">
+      <div class="field-label">Issues or delays</div>
+      <textarea class="event-field" id="issues" placeholder="Describe any issues or delays..."></textarea>
+    </div>
+    <div class="field">
+      <div class="field-label">Actions taken</div>
+      <textarea class="event-field" id="actions" placeholder="Describe actions taken..."></textarea>
+    </div>
+    <div class="field">
+      <div class="field-label">Follow-up needed</div>
+      <textarea class="event-field" id="followup" placeholder="Describe follow-up needed..."></textarea>
+    </div>
+  </div>
+
+  <!-- Preview + Copy -->
+  <div class="card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-title">Preview</div></div>
+    <div class="preview-box" id="preview">Generate preview below...</div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="generatePreview()">Generate Preview</button>
+      <button class="btn btn-copy" id="copyBtn" onclick="copyToClipboard()">Copy to Clipboard</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let opCount = 0;
+
+  function addOperator(defaults = {}) {
+    opCount++;
+    const id = opCount;
+    const container = document.getElementById('operators');
+    const div = document.createElement('div');
+    div.className = 'operator-block';
+    div.id = `op-${id}`;
+    div.innerHTML = `
+      <div class="op-header">
+        <span class="op-label">Operator ${id}</span>
+        <button class="btn-remove" onclick="removeOperator(${id})" title="Remove">×</button>
+      </div>
+      <div class="row">
+        <div class="field"><div class="field-label">Name</div><input type="text" class="name-field" id="op-name-${id}" placeholder="Operator name" value="${defaults.name||''}" /></div>
+        <div class="field"><div class="field-label">Good</div><input type="number" id="op-good-${id}" placeholder="0" min="0" value="${defaults.good||''}" /></div>
+        <div class="field"><div class="field-label">Bad</div><input type="number" id="op-bad-${id}" placeholder="0" min="0" value="${defaults.bad||''}" /></div>
+        <div class="field"><div class="field-label">Performance</div><select id="op-perf-${id}" style="width:130px"><option ${defaults.perf==='Good'||!defaults.perf?'selected':''}>Good</option><option ${defaults.perf==='Fair'?'selected':''}>Fair</option><option ${defaults.perf==='Bad'?'selected':''}>Bad</option></select></div>
+      </div>
+      <div class="field"><div class="field-label">Notes</div><textarea class="notes-field" id="op-notes-${id}" placeholder="Optional notes...">${defaults.notes||''}</textarea></div>
+    `;
+    container.appendChild(div);
+    autoNumber();
+  }
+
+  function removeOperator(id) {
+    const el = document.getElementById(`op-${id}`);
+    if (el) el.remove();
+    autoNumber();
+  }
+
+  function autoNumber() {
+    document.querySelectorAll('.operator-block').forEach((el, i) => {
+      el.querySelector('.op-label').textContent = `Operator ${i + 1}`;
+    });
+  }
+
+  function formatDate(val) {
+    if (!val) return '';
+    const [y, m, d] = val.split('-');
+    return `${m}.${d}.${y}`;
+  }
+
+  function generatePreview() {
+    const date = formatDate(document.getElementById('reportDate').value) || '—';
+    const shift = document.getElementById('shift').value;
+
+    let lines = [];
+    lines.push(`# ${date}`);
+    lines.push(`Shift: ${shift}`);
+    lines.push('');
+    lines.push('- Operator Summary');
+
+    document.querySelectorAll('.operator-block').forEach(el => {
+      const idPart = el.id.split('-')[1];
+      const name = document.getElementById(`op-name-${idPart}`).value.trim() || '—';
+      const good = document.getElementById(`op-good-${idPart}`).value.trim() || '—';
+      const bad = document.getElementById(`op-bad-${idPart}`).value.trim() || '—';
+      const perf = document.getElementById(`op-perf-${idPart}`).value.trim() || '—';
+      const notes = document.getElementById(`op-notes-${idPart}`).value.trim();
+      lines.push(`  - Operator name: ${name}`);
+      lines.push(`    - Quantity (Good/Bad): ${good}/${bad}`);
+      lines.push(`    - Performance: ${perf}`);
+      lines.push(`    - Notes:${notes ? ' ' + notes : ''}`);
+    });
+
+    lines.push('What happened today');
+
+    const keyEvents = document.getElementById('keyEvents').value.trim();
+    const issues = document.getElementById('issues').value.trim();
+    const actions = document.getElementById('actions').value.trim();
+    const followup = document.getElementById('followup').value.trim();
+
+    lines.push(`- Key events:${keyEvents ? ' ' + keyEvents : ''}`);
+    lines.push(`- Issues or delays:${issues ? ' ' + issues : ''}`);
+    lines.push(`- Actions taken:${actions ? ' ' + actions : ''}`);
+    lines.push(`- Follow-up needed:${followup ? ' ' + followup : ''}`);
+
+    const text = lines.join('\n');
+    document.getElementById('preview').textContent = text;
+    return text;
+  }
+
+  function copyToClipboard() {
+    const text = generatePreview();
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy to Clipboard';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+
+  const today = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('reportDate').value =
+    `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+
+  addOperator({ name: 'Jonathan' });
+  addOperator({ name: 'Donovon' });
+  addOperator({ name: 'Chai' });
+  addOperator({ name: 'Charles' });
+
+  generatePreview();
+</script>
+</body>
+</html>

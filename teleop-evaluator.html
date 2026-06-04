@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Teleop Candidate Evaluator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script>
+(function() {
+  const urls = [
+    'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js',
+    'https://unpkg.com/docx@8.5.0/build/index.umd.js',
+    'https://cdn.jsdelivr.net/npm/docx@8.2.4/build/index.umd.js'
+  ];
+  let i = 0;
+  function tryNext() {
+    if (i >= urls.length) { window._docxLoadFailed = true; return; }
+    const s = document.createElement('script');
+    s.src = urls[i++];
+    s.onerror = tryNext;
+    s.onload = () => { window._docxLoaded = true; };
+    document.head.appendChild(s);
+  }
+  tryNext();
+})();
+</script>
+
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --surface-sub: #faf9f7;
+    --border: #e8e3db;
+    --border-mid: #d6d0c6;
+    --text: #1a1714;
+    --text-2: #5c5652;
+    --text-3: #9c9590;
+    --accent: #c2820c;
+    --accent-h: #a36c09;
+    --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.05);
+    --radius: 12px;
+    --radius-sm: 7px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 28px 20px 120px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* Page header */
+  .page-header { margin-bottom: 20px; }
+  h1 { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+  .subtitle { color: var(--text-3); font-size: 13px; margin-top: 3px; }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 20px 22px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title::before {
+    content: '';
+    display: block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  /* Candidate tabs */
+  .candidate-strip {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .cand-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border-mid);
+    background: var(--surface-sub);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-2);
+    transition: all .15s;
+    white-space: nowrap;
+  }
+
+  .cand-tab:hover { border-color: var(--accent); color: var(--accent); background: #fef9ee; }
+
+  .cand-tab.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+
+  .cand-tab .x {
+    font-size: 14px;
+    line-height: 1;
+    opacity: 0.6;
+    transition: opacity .15s;
+  }
+
+  .cand-tab.active .x { opacity: 0.8; }
+  .cand-tab .x:hover { opacity: 1; }
+
+  /* Toolbar row */
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .save-status {
+    font-size: 12px;
+    color: #16a34a;
+    font-weight: 500;
+    margin-left: auto;
+  }
+
+  /* Form inputs */
+  .field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-2);
+    margin-bottom: 5px;
+    letter-spacing: 0.01em;
+  }
+
+  input[type="text"], textarea, select {
+    width: 100%;
+    padding: 8px 11px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--surface-sub);
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input[type="text"]:focus, textarea:focus, select:focus {
+    border-color: var(--accent);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(194,130,12,0.12);
+  }
+
+  textarea { min-height: 54px; resize: vertical; line-height: 1.5; }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 12px;
+  }
+
+  /* Categories */
+  .category-section { }
+
+  .category {
+    border-top: 1px solid var(--border);
+    padding: 18px 0;
+  }
+
+  .category:first-child { border-top: none; padding-top: 0; }
+  .category:last-child { padding-bottom: 0; }
+
+  .cat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+
+  .cat-name { font-weight: 700; font-size: 14px; color: var(--text); }
+
+  .cat-desc { font-size: 12px; color: var(--text-3); margin-bottom: 12px; line-height: 1.5; }
+
+  /* Score buttons */
+  .score-buttons {
+    display: flex;
+    gap: 4px;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+  }
+
+  .score-btn {
+    width: 34px;
+    height: 34px;
+    border: 1.5px solid var(--border-mid);
+    background: var(--surface-sub);
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-3);
+    transition: all .15s;
+    flex-shrink: 0;
+  }
+
+  .score-btn:hover {
+    border-color: var(--border-mid);
+    background: var(--border);
+    color: var(--text-2);
+    transform: translateY(-1px);
+  }
+
+  /* Score color scale when active */
+  .score-btn.active.s1  { background: #dc2626; color: #fff; border-color: #dc2626; }
+  .score-btn.active.s2  { background: #ea4630; color: #fff; border-color: #ea4630; }
+  .score-btn.active.s3  { background: #f56d20; color: #fff; border-color: #f56d20; }
+  .score-btn.active.s4  { background: #f97316; color: #fff; border-color: #f97316; }
+  .score-btn.active.s5  { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+  .score-btn.active.s6  { background: #eab308; color: #fff; border-color: #eab308; }
+  .score-btn.active.s7  { background: #a3c43a; color: #fff; border-color: #a3c43a; }
+  .score-btn.active.s8  { background: #6ec04c; color: #fff; border-color: #6ec04c; }
+  .score-btn.active.s9  { background: #3cb85e; color: #fff; border-color: #3cb85e; }
+  .score-btn.active.s10 { background: #16a34a; color: #fff; border-color: #16a34a; }
+
+  .score-btn.active { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.18); }
+
+  /* Checkboxes */
+  .check-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    transition: all .15s;
+    font-size: 13px;
+    color: var(--text-2);
+    font-weight: normal;
+  }
+
+  .check-item:hover { background: var(--surface-sub); border-color: var(--border); }
+  .check-item.checked { background: #fef9ee; border-color: #f5d58a; color: var(--text); }
+  .check-item.checked.flag { background: #fef2f2; border-color: #fca5a5; }
+
+  .check-item input[type="checkbox"] { margin-top: 1px; flex-shrink: 0; accent-color: var(--accent); }
+
+  /* Recommendation */
+  .rec-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .rec-option {
+    padding: 12px 14px;
+    border: 1.5px solid var(--border-mid);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-2);
+    background: var(--surface-sub);
+    transition: all .15s;
+    text-align: center;
+  }
+
+  .rec-option:hover { border-color: var(--accent); color: var(--accent); background: #fef9ee; }
+
+  .rec-option.active.rec-strong { background: #16a34a; color: #fff; border-color: #16a34a; }
+  .rec-option.active.rec-possible { background: #d97706; color: #fff; border-color: #d97706; }
+  .rec-option.active.rec-weak { background: #ea580c; color: #fff; border-color: #ea580c; }
+  .rec-option.active.rec-no { background: #dc2626; color: #fff; border-color: #dc2626; }
+
+  /* Total bar */
+  .total-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.07);
+    z-index: 100;
+  }
+
+  .total-inner {
+    max-width: 940px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .score-display {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  .score-big {
+    font-size: 30px;
+    font-weight: 800;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+
+  .score-max {
+    font-size: 16px;
+    color: var(--text-3);
+    font-weight: 400;
+  }
+
+  .score-label {
+    font-size: 12px;
+    color: var(--text-3);
+    font-weight: 500;
+  }
+
+  .score-bar-wrap {
+    flex: 1;
+    max-width: 200px;
+    height: 6px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, #f97316, #16a34a);
+    transition: width .3s ease;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border-mid);
+    background: var(--surface);
+    color: var(--text-2);
+    font-family: inherit;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+
+  .btn:hover { background: var(--bg); }
+  .btn:active { transform: scale(0.98); }
+
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 1px 3px rgba(194,130,12,0.25); }
+  .btn-primary:hover { background: var(--accent-h); border-color: var(--accent-h); }
+
+  .btn-sm { padding: 6px 12px; font-size: 12.5px; }
+
+  #folderBtn { max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+
+  .section-gap { margin-top: 14px; }
+
+  @media (max-width: 640px) {
+    .info-grid { grid-template-columns: 1fr; }
+    .score-buttons { flex-wrap: wrap; }
+    .score-btn { width: 30px; height: 30px; font-size: 11px; }
+    .check-grid { grid-template-columns: 1fr; }
+    .rec-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Teleop Candidate Evaluator</h1>
+  <div class="subtitle">Select a candidates folder — evaluations load automatically and save as MMDD_name.docx</div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Candidates</div>
+    <div class="toolbar">
+      <input type="file" id="docxUpload" accept=".docx" style="display:none;" onchange="importDocx(event)">
+      <button class="btn btn-sm" id="folderBtn" onclick="selectFolder()">📁 Select Folder</button>
+      <button class="btn btn-sm" onclick="document.getElementById('docxUpload').click()">Import .docx</button>
+      <button class="btn btn-sm btn-primary" onclick="addCandidate()">+ New</button>
+      <span class="save-status" id="saveStatus"></span>
+    </div>
+  </div>
+  <div class="candidate-strip" id="candidateList"></div>
+</div>
+
+<div id="evalForm"></div>
+
+<script>
+const CATEGORIES = [
+  { key: 'control',      name: 'Control / Steady Hands',              desc: '1–3: Shaky, jerky, overcorrects. 4–7: Some shakiness but usable. 8–10: Smooth, steady, precise.' },
+  { key: 'handeye',      name: 'Hand-Eye Coordination',               desc: '1–3: Misjudges distance/angle often. 4–7: Basics with some mistakes. 8–10: Accurate awareness of position and movement.' },
+  { key: 'task',         name: 'Task Execution: Pick Up / Move / Place', desc: '1–3: Cannot complete or needs major help. 4–7: Completes with mistakes or guidance. 8–10: Clean, controlled completion.' },
+  { key: 'instructions', name: 'Following Instructions',               desc: '1–3: Misses or ignores instructions. 4–7: Follows most with small misses. 8–10: Follows clearly and accurately.' },
+  { key: 'teach',        name: 'Teachability',                         desc: '1–3: Does not improve / repeats mistakes. 4–7: Improves inconsistently. 8–10: Quickly applies feedback.' },
+  { key: 'problem',      name: 'Problem Solving / Adjustment',         desc: '1–3: Gets stuck or guesses randomly. 4–7: Tries to adjust, may need guidance. 8–10: Adapts naturally, fixes mistakes.' },
+  { key: 'safety',       name: 'Safety / Carefulness',                 desc: '1–3: Careless, risks damage. 4–7: Minor bumps but improves. 8–10: Careful, controlled, avoids risk.' },
+  { key: 'fit',          name: 'Role Fit / Patience',                  desc: '1–3: Frustrated, bored, careless. 4–7: Neutral, can continue. 8–10: Engaged, comfortable, wants to improve.' }
+];
+
+const POSITIVE_SIGNALS = [
+  'Prior gaming/robotics/drone experience',
+  'Tools, machinery, or lab work background',
+  'Crafts, sewing, or fine hand-control',
+  'Calm during mistakes',
+  'Good communication',
+  'Curious about the robot/task',
+  'Willing to try again',
+  'Positive energy',
+  'Excited about the role'
+];
+
+const RED_FLAGS = [
+  'Hits table/object/robot hard',
+  'Breaks or nearly breaks robot',
+  'Ignores safety instructions',
+  'Moves too fast after being told to slow',
+  'Does not correct after feedback',
+  'Defensive when corrected',
+  'Refuses to try again',
+  'Says they do not want this work',
+  'Blames equipment without adjusting'
+];
+
+const RECOMMENDATIONS = [
+  { label: 'Strong candidate',        cls: 'rec-strong' },
+  { label: 'Trainable / possible hire', cls: 'rec-possible' },
+  { label: 'Weak fit',                cls: 'rec-weak' },
+  { label: 'Do not hire',             cls: 'rec-no' }
+];
+
+let candidates = {};
+let activeId = null;
+let candidatesDir = null;
+
+// ── IndexedDB helpers ──────────────────────────────────────────────────────
+
+function openDb() {
+  return new Promise((resolve) => {
+    const req = indexedDB.open('rf-admin', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('handles');
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = () => resolve(null);
+  });
+}
+
+async function getStoredDirHandle() {
+  const db = await openDb();
+  if (!db) return null;
+  return new Promise(resolve => {
+    try {
+      const tx = db.transaction('handles', 'readonly');
+      const req = tx.objectStore('handles').get('candidatesDir');
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    } catch { resolve(null); }
+  });
+}
+
+async function storeDirHandle(handle) {
+  const db = await openDb();
+  if (!db) return;
+  return new Promise(resolve => {
+    try {
+      const tx = db.transaction('handles', 'readwrite');
+      tx.objectStore('handles').put(handle, 'candidatesDir');
+      tx.oncomplete = resolve;
+      tx.onerror = resolve;
+    } catch { resolve(); }
+  });
+}
+
+// ── Folder management ──────────────────────────────────────────────────────
+
+async function selectFolder() {
+  if (!window.showDirectoryPicker) {
+    alert('Your browser does not support the File System Access API.\nPlease use Chrome or Edge.');
+    return;
+  }
+  try {
+    candidatesDir = await window.showDirectoryPicker({ id: 'candidates', mode: 'readwrite' });
+    await storeDirHandle(candidatesDir);
+    updateFolderBtn();
+    candidates = {};
+    await loadFromFolder();
+    if (Object.keys(candidates).length === 0) addCandidate();
+    else { activeId = Object.keys(candidates)[0]; render(); }
+  } catch (e) {
+    if (e.name !== 'AbortError') console.error(e);
+  }
+}
+
+async function getDir() {
+  if (candidatesDir) return candidatesDir;
+  const stored = await getStoredDirHandle();
+  if (!stored) return null;
+  try {
+    const perm = await stored.requestPermission({ mode: 'readwrite' });
+    if (perm === 'granted') { candidatesDir = stored; return candidatesDir; }
+  } catch {}
+  return null;
+}
+
+function updateFolderBtn() {
+  const btn = document.getElementById('folderBtn');
+  if (!btn) return;
+  btn.textContent = candidatesDir ? `📁 ${candidatesDir.name}` : '📁 Select Folder';
+  btn.title = candidatesDir ? 'Click to change folder' : 'Select a folder to load and save evaluations';
+}
+
+function getCandidateFilename(c) {
+  const d = c.date || new Date().toISOString().split('T')[0];
+  const parts = d.split('-');
+  const mm = (parts[1] || '01').padStart(2, '0');
+  const dd = (parts[2] || '01').padStart(2, '0');
+  const name = (c.name || 'unnamed').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  return `${mm}${dd}_${name}.docx`;
+}
+
+async function loadFromFolder() {
+  const dir = await getDir();
+  if (!dir) return;
+  const status = document.getElementById('saveStatus');
+  status.textContent = 'Loading...';
+  let count = 0;
+  try {
+    for await (const [name, handle] of dir.entries()) {
+      if (!name.endsWith('.docx')) continue;
+      try {
+        const file = await handle.getFile();
+        const buf = await file.arrayBuffer();
+        const c = await parseDocxToCandidate(buf);
+        c._filename = name;
+        candidates[c.id] = c;
+        count++;
+      } catch (e) {
+        console.error('Failed to parse', name, e);
+      }
+    }
+    status.textContent = count > 0 ? `✓ Loaded ${count} eval${count !== 1 ? 's' : ''}` : '';
+    setTimeout(() => { status.textContent = ''; }, 2000);
+  } catch (e) {
+    status.textContent = '';
+  }
+}
+
+// ── Candidate data ─────────────────────────────────────────────────────────
+
+function newCandidate() {
+  const id = 'c_' + Date.now();
+  return {
+    id, name: '', date: new Date().toISOString().split('T')[0],
+    evaluator: '', scores: {}, notes: {},
+    positive: [], flags: [],
+    exit: { q1: '', q2: '', q3: '' },
+    extraNotes: '', finalNotes: '', recommendation: '',
+    _filename: null
+  };
+}
+
+function addCandidate() {
+  const c = newCandidate();
+  candidates[c.id] = c;
+  activeId = c.id;
+  render();
+}
+
+function deleteCandidate(id, e) {
+  e.stopPropagation();
+  if (!confirm('Delete this candidate?')) return;
+  const c = candidates[id];
+  delete candidates[id];
+  if (activeId === id) {
+    const keys = Object.keys(candidates);
+    activeId = keys[0] || null;
+    if (!activeId) addCandidate();
+  }
+  if (c && c._filename) {
+    getDir().then(dir => {
+      if (dir) dir.removeEntry(c._filename).catch(() => {});
+    });
+  }
+  render();
+}
+
+function selectCandidate(id) { activeId = id; render(); }
+
+function update(field, value) {
+  const c = candidates[activeId];
+  const parts = field.split('.');
+  let target = c;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (!target[parts[i]]) target[parts[i]] = {};
+    target = target[parts[i]];
+  }
+  target[parts[parts.length - 1]] = value;
+  if (field === 'name') renderTabs();
+  if (field.startsWith('scores.')) updateScoreBar();
+}
+
+function toggleArr(arr, value) {
+  const c = candidates[activeId];
+  const idx = c[arr].indexOf(value);
+  if (idx >= 0) c[arr].splice(idx, 1);
+  else c[arr].push(value);
+}
+
+function setScore(key, value) {
+  const c = candidates[activeId];
+  c.scores[key] = value;
+  // Update just the buttons for this category
+  const cat = document.querySelector(`[data-cat="${key}"]`);
+  if (cat) {
+    cat.querySelectorAll('.score-btn').forEach((btn, idx) => {
+      const n = idx + 1;
+      btn.classList.toggle('active', n === value);
+      btn.classList.toggle(`s${n}`, n === value);
+    });
+  }
+  updateScoreBar();
+}
+
+function getTotal() {
+  const c = candidates[activeId];
+  if (!c) return 0;
+  return CATEGORIES.reduce((sum, cat) => sum + (c.scores[cat.key] || 0), 0);
+}
+
+function updateScoreBar() {
+  const total = getTotal();
+  const el = document.getElementById('totalScore');
+  const bar = document.getElementById('scoreBarFill');
+  if (el) el.textContent = total;
+  if (bar) bar.style.width = `${(total / 80) * 100}%`;
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+
+function renderTabs() {
+  const list = document.getElementById('candidateList');
+  list.innerHTML = Object.values(candidates).map(c => `
+    <div class="cand-tab ${c.id === activeId ? 'active' : ''}" onclick="selectCandidate('${c.id}')">
+      <span>${c.name || 'Unnamed'}</span>
+      <span class="x" onclick="deleteCandidate('${c.id}', event)">✕</span>
+    </div>
+  `).join('');
+}
+
+function render() {
+  renderTabs();
+  if (!activeId) return;
+  const c = candidates[activeId];
+
+  const categoriesHtml = CATEGORIES.map(cat => `
+    <div class="category">
+      <div class="cat-header">
+        <div class="cat-name">${cat.name}</div>
+        <div class="score-buttons" data-cat="${cat.key}">
+          ${[1,2,3,4,5,6,7,8,9,10].map(n => `
+            <button class="score-btn s${n} ${c.scores[cat.key] === n ? 'active' : ''}"
+                    onclick="setScore('${cat.key}', ${n})">${n}</button>
+          `).join('')}
+        </div>
+      </div>
+      <div class="cat-desc">${cat.desc}</div>
+      <textarea placeholder="Notes for this category..." onchange="update('notes.${cat.key}', this.value)">${c.notes[cat.key] || ''}</textarea>
+    </div>
+  `).join('');
+
+  const posHtml = POSITIVE_SIGNALS.map(s => `
+    <label class="check-item ${c.positive.includes(s) ? 'checked' : ''}">
+      <input type="checkbox" ${c.positive.includes(s) ? 'checked' : ''}
+             onchange="toggleArr('positive', '${s.replace(/'/g, "\\'")}'); this.closest('.check-item').classList.toggle('checked', this.checked)">
+      ${s}
+    </label>
+  `).join('');
+
+  const flagHtml = RED_FLAGS.map(s => `
+    <label class="check-item flag ${c.flags.includes(s) ? 'checked flag' : ''}">
+      <input type="checkbox" ${c.flags.includes(s) ? 'checked' : ''}
+             onchange="toggleArr('flags', '${s.replace(/'/g, "\\'")}'); this.closest('.check-item').classList.toggle('checked', this.checked)">
+      ${s}
+    </label>
+  `).join('');
+
+  const recHtml = RECOMMENDATIONS.map(r => `
+    <div class="rec-option ${r.cls} ${c.recommendation === r.label ? 'active' : ''}"
+         onclick="update('recommendation', '${r.label}'); document.querySelectorAll('.rec-option').forEach(el => el.classList.remove('active')); this.classList.add('active');">
+      ${r.label}
+    </div>
+  `).join('');
+
+  const total = getTotal();
+
+  document.getElementById('evalForm').innerHTML = `
+    <div class="card">
+      <div class="card-header"><div class="card-title">Candidate Info</div></div>
+      <div class="info-grid">
+        <div><label class="field-label">Name</label><input type="text" value="${c.name}" onchange="update('name', this.value)" placeholder="Full name"></div>
+        <div><label class="field-label">Date</label><input type="text" value="${c.date}" onchange="update('date', this.value)" placeholder="YYYY-MM-DD"></div>
+        <div><label class="field-label">Evaluator</label><input type="text" value="${c.evaluator}" onchange="update('evaluator', this.value)" placeholder="Your name"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Category Scores</div></div>
+      <div class="category-section">${categoriesHtml}</div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Positive Signals</div></div>
+      <div class="check-grid">${posHtml}</div>
+      <div class="section-gap">
+        <label class="field-label">Extra notes</label>
+        <textarea onchange="update('extraNotes', this.value)" placeholder="Additional positive observations...">${c.extraNotes}</textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Red Flags</div></div>
+      <div class="check-grid">${flagHtml}</div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Exit Questions</div></div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div>
+          <label class="field-label">1. How do you feel like that went?</label>
+          <textarea onchange="update('exit.q1', this.value)" placeholder="Candidate's response...">${c.exit.q1}</textarea>
+        </div>
+        <div>
+          <label class="field-label">2. What would you do differently?</label>
+          <textarea onchange="update('exit.q2', this.value)" placeholder="Candidate's response...">${c.exit.q2}</textarea>
+        </div>
+        <div>
+          <label class="field-label">3. Could you do this for long periods?</label>
+          <textarea onchange="update('exit.q3', this.value)" placeholder="Candidate's response...">${c.exit.q3}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Recommendation</div></div>
+      <div class="rec-grid">${recHtml}</div>
+      <div class="section-gap">
+        <label class="field-label">Final Notes</label>
+        <textarea onchange="update('finalNotes', this.value)" placeholder="Summary and any other notes...">${c.finalNotes}</textarea>
+      </div>
+    </div>
+  `;
+
+  // Sticky total bar
+  let bar = document.getElementById('stickyBar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'stickyBar';
+    bar.className = 'total-bar';
+    document.body.appendChild(bar);
+  }
+  bar.innerHTML = `
+    <div class="total-inner">
+      <div style="display:flex;align-items:center;gap:12px;flex:1;">
+        <div>
+          <div class="score-label">Score</div>
+          <div class="score-display">
+            <span class="score-big" id="totalScore">${total}</span>
+            <span class="score-max"> / 80</span>
+          </div>
+        </div>
+        <div style="flex:1;max-width:160px;">
+          <div class="score-bar-wrap">
+            <div class="score-bar-fill" id="scoreBarFill" style="width:${(total/80)*100}%"></div>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="saveDocx()">Save Eval</button>
+    </div>
+  `;
+}
+
+// ── Build docx content ─────────────────────────────────────────────────────
+
+function buildDocxChildren(c, total) {
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel,
+          Table, TableRow, TableCell, WidthType, BorderStyle, ShadingType } = docx;
+
+  const border = { style: BorderStyle.SINGLE, size: 4, color: "CCCCCC" };
+  const borders = { top: border, bottom: border, left: border, right: border };
+
+  function p(text, opts = {}) {
+    return new Paragraph({
+      children: [new TextRun({ text: text || '', bold: opts.bold, size: opts.size || 22 })],
+      spacing: { after: opts.after !== undefined ? opts.after : 80 },
+      heading: opts.heading
+    });
+  }
+
+  function blank() { return new Paragraph({ children: [new TextRun('')], spacing: { after: 80 } }); }
+
+  function cell(text, opts = {}) {
+    return new TableCell({
+      borders,
+      width: { size: opts.width || 4680, type: WidthType.DXA },
+      shading: opts.shade ? { fill: opts.shade, type: ShadingType.CLEAR } : undefined,
+      margins: { top: 80, bottom: 80, left: 120, right: 120 },
+      children: [new Paragraph({
+        children: [new TextRun({ text: text || '', bold: opts.bold, size: 20 })]
+      })]
+    });
+  }
+
+  const scoreRows = [
+    new TableRow({
+      tableHeader: true,
+      children: [
+        cell('Category', { bold: true, shade: 'E8E8ED', width: 5760 }),
+        cell('Score', { bold: true, shade: 'E8E8ED', width: 1200 }),
+        cell('Notes', { bold: true, shade: 'E8E8ED', width: 2400 })
+      ]
+    })
+  ];
+  for (const cat of CATEGORIES) {
+    scoreRows.push(new TableRow({
+      children: [
+        cell(cat.name, { width: 5760 }),
+        cell(c.scores[cat.key] ? `${c.scores[cat.key]} / 10` : '— / 10', { width: 1200 }),
+        cell(c.notes[cat.key] || '', { width: 2400 })
+      ]
+    }));
+  }
+  scoreRows.push(new TableRow({
+    children: [
+      cell('TOTAL', { bold: true, shade: 'F5F5F7', width: 5760 }),
+      cell(`${total} / 80`, { bold: true, shade: 'F5F5F7', width: 1200 }),
+      cell('', { shade: 'F5F5F7', width: 2400 })
+    ]
+  }));
+
+  const scoreTable = new Table({
+    width: { size: 9360, type: WidthType.DXA },
+    columnWidths: [5760, 1200, 2400],
+    rows: scoreRows
+  });
+
+  const children = [
+    p('Teleoperation Candidate Evaluation', { heading: HeadingLevel.HEADING_1, bold: true, size: 36, after: 200 }),
+    p(`Candidate: ${c.name || 'Unnamed'}`, { bold: true, size: 24 }),
+    p(`Date: ${c.date}    Evaluator: ${c.evaluator || '—'}`, { size: 22, after: 200 }),
+    p('Category Scores', { heading: HeadingLevel.HEADING_2, bold: true, size: 28, after: 120 }),
+    scoreTable,
+    blank(),
+    p('Recommendation', { heading: HeadingLevel.HEADING_2, bold: true, size: 28, after: 120 }),
+    p(c.recommendation || '—', { size: 22, after: 200 })
+  ];
+
+  if (c.positive.length || c.extraNotes) {
+    children.push(p('Positive Signals', { heading: HeadingLevel.HEADING_2, bold: true, size: 28, after: 120 }));
+    for (const s of c.positive) {
+      children.push(new Paragraph({ children: [new TextRun({ text: '• ' + s, size: 22 })], spacing: { after: 60 } }));
+    }
+    if (c.extraNotes) {
+      children.push(blank());
+      children.push(p('Extra notes: ' + c.extraNotes, { size: 22 }));
+    }
+    children.push(blank());
+  }
+
+  if (c.flags.length) {
+    children.push(p('Red Flags', { heading: HeadingLevel.HEADING_2, bold: true, size: 28, after: 120 }));
+    for (const f of c.flags) {
+      children.push(new Paragraph({ children: [new TextRun({ text: '• ' + f, size: 22 })], spacing: { after: 60 } }));
+    }
+    children.push(blank());
+  }
+
+  if (c.exit.q1 || c.exit.q2 || c.exit.q3) {
+    children.push(p('Exit Questions', { heading: HeadingLevel.HEADING_2, bold: true, size: 28, after: 120 }));
+    if (c.exit.q1) {
+      children.push(p('How they feel it went:', { bold: true, size: 22, after: 40 }));
+      children.push(p(c.exit.q1, { size: 22, after: 120 }));
+    }
+    if (c.exit.q2) {
+      children.push(p('What they would do differently:', { bold: true, size: 22, after: 40 }));
+      children.push(p(c.exit.q2, { size: 22, after: 120 }));
+    }
+    if (c.exit.q3) {
+      children.push(p('Long-period role fit:', { bold: true, size: 22, after: 40 }));
+      children.push(p(c.exit.q3, { size: 22, after: 120 }));
+    }
+  }
+
+  if (c.finalNotes) {
+    children.push(p('Final Notes', { heading: HeadingLevel.HEADING_2, bold: true, size: 28, after: 120 }));
+    children.push(p(c.finalNotes, { size: 22 }));
+  }
+
+  return children;
+}
+
+// ── Save eval to candidates folder ────────────────────────────────────────
+
+async function saveDocx() {
+  if (typeof docx === 'undefined') {
+    alert(window._docxLoadFailed
+      ? 'The Word document library failed to load. Check your internet connection, then reload.'
+      : 'The Word document library is still loading. Try again in a moment.');
+    return;
+  }
+
+  const dir = await getDir();
+  if (!dir) {
+    alert('Please select a candidates folder first (click "📁 Select Folder").');
+    return;
+  }
+
+  const c = candidates[activeId];
+  const total = getTotal();
+  const { Document, Packer } = docx;
+
+  const doc = new Document({
+    styles: { default: { document: { run: { font: 'Arial', size: 22 } } } },
+    sections: [{
+      properties: {
+        page: {
+          size: { width: 12240, height: 15840 },
+          margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
+        }
+      },
+      children: buildDocxChildren(c, total)
+    }]
+  });
+
+  try {
+    const blob = await Packer.toBlob(doc);
+    const newFilename = getCandidateFilename(c);
+    const oldFilename = c._filename;
+
+    const fh = await dir.getFileHandle(newFilename, { create: true });
+    const writable = await fh.createWritable();
+    await writable.write(blob);
+    await writable.close();
+
+    if (oldFilename && oldFilename !== newFilename) {
+      try { await dir.removeEntry(oldFilename); } catch {}
+    }
+    c._filename = newFilename;
+
+    const status = document.getElementById('saveStatus');
+    status.textContent = `✓ Saved ${newFilename}`;
+    setTimeout(() => { status.textContent = ''; }, 2500);
+  } catch (e) {
+    console.error(e);
+    alert('Save failed: ' + e.message);
+  }
+}
+
+// ── Parse docx ────────────────────────────────────────────────────────────
+
+async function parseDocxToCandidate(buf) {
+  const zip = await JSZip.loadAsync(buf);
+  const xml = await zip.file('word/document.xml').async('string');
+
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(xml, 'text/xml');
+  const ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+
+  const paras = Array.from(xmlDoc.getElementsByTagNameNS(ns, 'p'));
+  const paraText = paras.map(p => {
+    const texts = Array.from(p.getElementsByTagNameNS(ns, 't'));
+    return texts.map(t => t.textContent).join('');
+  }).filter(t => t.trim().length > 0);
+
+  const tables = Array.from(xmlDoc.getElementsByTagNameNS(ns, 'tbl')).map(tbl =>
+    Array.from(tbl.getElementsByTagNameNS(ns, 'tr')).map(tr =>
+      Array.from(tr.getElementsByTagNameNS(ns, 'tc')).map(tc => {
+        const texts = Array.from(tc.getElementsByTagNameNS(ns, 't'));
+        return texts.map(t => t.textContent).join('').trim();
+      })
+    )
+  );
+
+  const c = newCandidate();
+
+  for (const line of paraText) {
+    const nameM = line.match(/^Candidate:\s*(.+)$/);
+    if (nameM) c.name = nameM[1].trim() === 'Unnamed' ? '' : nameM[1].trim();
+    const dateM = line.match(/Date:\s*([0-9-]+)/);
+    if (dateM) c.date = dateM[1].trim();
+    const evalM = line.match(/Evaluator:\s*(.+?)$/);
+    if (evalM) {
+      const v = evalM[1].trim();
+      c.evaluator = (v === '—' || v === '-') ? '' : v;
+    }
+  }
+
+  const scoreTable = tables.find(t => t.length > 0 && t[0][0] && t[0][0].toLowerCase().includes('category'));
+  if (scoreTable) {
+    for (const row of scoreTable.slice(1)) {
+      const [catName, scoreStr, note] = [row[0] || '', row[1] || '', row[2] || ''];
+      if (!catName || catName.toUpperCase() === 'TOTAL') continue;
+      const cat = CATEGORIES.find(x => x.name === catName);
+      if (cat) {
+        const m = scoreStr.match(/^\s*(10|[1-9])\s*\//);
+        if (m) c.scores[cat.key] = parseInt(m[1]);
+        if (note) c.notes[cat.key] = note;
+      }
+    }
+  }
+
+  let section = null;
+  let exitKey = null;
+
+  for (let i = 0; i < paraText.length; i++) {
+    const line = paraText[i].trim();
+    if (!line) continue;
+
+    if (line === 'Recommendation') { section = 'rec'; continue; }
+    if (line === 'Positive Signals') { section = 'positive'; continue; }
+    if (line === 'Red Flags') { section = 'flags'; continue; }
+    if (line === 'Exit Questions') { section = 'exit'; exitKey = null; continue; }
+    if (line === 'Final Notes') { section = 'final'; continue; }
+    if (line === 'Category Scores') { section = 'scores'; continue; }
+
+    if (section === 'rec') {
+      if (line !== '—') {
+        const match = RECOMMENDATIONS.find(r => line.includes(r.label) || r.label.includes(line));
+        c.recommendation = match ? match.label : line;
+      }
+      section = null;
+      continue;
+    }
+
+    if (section === 'positive') {
+      if (line.startsWith('• ') || line.startsWith('- ')) {
+        const item = line.replace(/^[•\-]\s+/, '').trim();
+        if (POSITIVE_SIGNALS.includes(item)) c.positive.push(item);
+      } else if (line.startsWith('Extra notes:')) {
+        c.extraNotes = line.replace(/^Extra notes:\s*/, '').trim();
+      }
+      continue;
+    }
+
+    if (section === 'flags') {
+      if (line.startsWith('• ') || line.startsWith('- ')) {
+        const item = line.replace(/^[•\-]\s+/, '').trim();
+        if (RED_FLAGS.includes(item)) c.flags.push(item);
+      }
+      continue;
+    }
+
+    if (section === 'exit') {
+      if (line === 'How they feel it went:') { exitKey = 'q1'; continue; }
+      if (line === 'What they would do differently:') { exitKey = 'q2'; continue; }
+      if (line === 'Long-period role fit:') { exitKey = 'q3'; continue; }
+      if (exitKey) {
+        c.exit[exitKey] = (c.exit[exitKey] ? c.exit[exitKey] + '\n' : '') + line;
+      }
+      continue;
+    }
+
+    if (section === 'final') {
+      c.finalNotes = (c.finalNotes ? c.finalNotes + '\n' : '') + line;
+      continue;
+    }
+  }
+
+  return c;
+}
+
+// ── Import .docx via upload button ─────────────────────────────────────────
+
+async function importDocx(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const status = document.getElementById('saveStatus');
+  status.textContent = 'Parsing...';
+  try {
+    const buf = await file.arrayBuffer();
+    const c = await parseDocxToCandidate(buf);
+    candidates[c.id] = c;
+    activeId = c.id;
+    render();
+    status.textContent = '✓ Imported';
+    setTimeout(() => { status.textContent = ''; }, 2000);
+  } catch (e) {
+    console.error(e);
+    status.textContent = 'Import failed';
+    alert('Could not parse this file. Make sure it is a .docx exported from this tool.\n\n' + e.message);
+  } finally {
+    event.target.value = '';
+  }
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+
+async function init() {
+  const dir = await getDir();
+  if (dir) {
+    candidatesDir = dir;
+    updateFolderBtn();
+    await loadFromFolder();
+  }
+
+  if (Object.keys(candidates).length === 0) {
+    addCandidate();
+  } else {
+    activeId = Object.keys(candidates)[0];
+    render();
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>

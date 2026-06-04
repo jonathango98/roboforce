@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RF Admin</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f7f6f3;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  nav {
+    background: #0d0c0b;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 20px;
+    height: 54px;
+    flex-shrink: 0;
+    border-bottom: 1px solid #1e1c1a;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-right: 16px;
+    text-decoration: none;
+  }
+
+  .brand-mark {
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(145deg, #e09118, #b45309);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+  }
+
+  .brand-name {
+    color: #d6d3d0;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .sep {
+    width: 1px;
+    height: 22px;
+    background: #2a2724;
+    margin: 0 10px 0 6px;
+  }
+
+  .tab {
+    background: none;
+    border: none;
+    color: #6b6560;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 500;
+    padding: 0 14px;
+    height: 54px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+
+  .tab:hover { color: #c9c5c0; }
+
+  .tab.active {
+    color: #f5f3ef;
+    border-bottom-color: #d97706;
+  }
+
+  .pane { display: none; flex: 1; overflow: hidden; }
+  .pane.active { display: flex; flex-direction: column; }
+
+  iframe { flex: 1; border: none; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">
+    <div class="brand-mark">RF</div>
+    <span class="brand-name">Roboforce</span>
+  </div>
+  <div class="sep"></div>
+  <button class="tab" onclick="switchTab(0)">Shift Report</button>
+  <button class="tab" onclick="switchTab(1)">Timesheet</button>
+  <button class="tab" onclick="switchTab(2)">Teleop Evaluator</button>
+</nav>
+
+<div class="pane"><iframe src="shift-report.html" title="Shift Report"></iframe></div>
+<div class="pane"><iframe src="timesheet.html" title="Timesheet"></iframe></div>
+<div class="pane"><iframe src="teleop-evaluator.html" title="Teleop Evaluator"></iframe></div>
+
+<script>
+  const tabs = document.querySelectorAll('.tab');
+  const panes = document.querySelectorAll('.pane');
+
+  function switchTab(i) {
+    tabs.forEach((t, idx) => t.classList.toggle('active', idx === i));
+    panes.forEach((p, idx) => p.classList.toggle('active', idx === i));
+    localStorage.setItem('rf-admin-tab', i);
+  }
+
+  const saved = parseInt(localStorage.getItem('rf-admin-tab') ?? '0', 10);
+  switchTab(isNaN(saved) ? 0 : saved);
+</script>
+
+</body>
+</html>

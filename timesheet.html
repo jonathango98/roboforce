@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Timesheet</title>
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --surface-sub: #faf9f7;
+    --border: #e8e3db;
+    --border-mid: #d6d0c6;
+    --text: #1a1714;
+    --text-2: #5c5652;
+    --text-3: #9c9590;
+    --accent: #c2820c;
+    --accent-h: #a36c09;
+    --danger: #dc2626;
+    --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.05);
+    --radius: 12px;
+    --radius-sm: 7px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    padding: 28px 20px 56px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .container { max-width: 660px; margin: 0 auto; }
+
+  .page-header { margin-bottom: 20px; }
+  h1 { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+  .saved-text { font-size: 12px; color: var(--text-3); margin-top: 3px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow);
+  }
+
+  .field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-2);
+    margin-bottom: 5px;
+    letter-spacing: 0.01em;
+  }
+
+  input[type="text"],
+  input[type="time"],
+  input[type="number"],
+  input[type="date"] {
+    width: 100%;
+    padding: 8px 11px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--surface-sub);
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input:focus {
+    border-color: var(--accent);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(194,130,12,0.12);
+  }
+
+  .row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .table-header {
+    display: grid;
+    grid-template-columns: 88px 1fr 1fr 72px 64px 28px;
+    gap: 8px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .table-header .right { text-align: right; }
+
+  .day {
+    display: grid;
+    grid-template-columns: 88px 1fr 1fr 72px 64px 28px;
+    gap: 8px;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid #f2ede6;
+    transition: background .1s;
+  }
+
+  .day:last-child { border-bottom: none; }
+
+  .day-name { font-weight: 600; font-size: 13px; color: var(--text); }
+  .day-date { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+
+  .day input { padding: 7px 8px; font-size: 13px; }
+
+  .day-total {
+    text-align: right;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .day-clear {
+    width: 26px;
+    height: 26px;
+    min-width: 0;
+    padding: 0;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-3);
+    border-radius: 6px;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    transition: background .15s, border-color .15s, color .15s;
+  }
+
+  .day-clear:hover {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: var(--danger);
+  }
+
+  .total-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 22px;
+    background: #13120f;
+    color: #f5f3ef;
+    border-radius: var(--radius);
+    margin-bottom: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+
+  .total-bar .label { font-size: 13px; color: #9c9590; font-weight: 500; }
+  .total-bar .value {
+    font-size: 26px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.5px;
+  }
+  .total-bar .value .unit {
+    font-size: 14px;
+    font-weight: 400;
+    color: #6b6560;
+    margin-left: 2px;
+  }
+
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  button {
+    flex: 1;
+    min-width: 100px;
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border-mid);
+    background: var(--surface);
+    color: var(--text-2);
+    font-family: inherit;
+    transition: background .15s, border-color .15s, color .15s, transform .1s;
+  }
+
+  button:hover { background: var(--bg); }
+  button:active { transform: scale(0.98); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    box-shadow: 0 1px 3px rgba(194,130,12,0.25);
+  }
+  .btn-primary:hover { background: var(--accent-h); border-color: var(--accent-h); }
+
+  .btn-danger { color: var(--danger); }
+  .btn-danger:hover { background: #fef2f2; border-color: #fca5a5; color: var(--danger); }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    background: #13120f;
+    color: #f5f3ef;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+    border: 1px solid #2a2724;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  @media (max-width: 600px) {
+    .day, .table-header {
+      grid-template-columns: 60px 1fr 1fr 52px 50px 24px;
+      gap: 5px;
+    }
+    .day input { padding: 6px 6px; font-size: 12px; }
+    .row-2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="page-header">
+    <h1>Timesheet</h1>
+    <div class="saved-text" id="savedText">Auto-saves to this browser</div>
+  </div>
+
+  <div class="card">
+    <div class="row-2">
+      <div>
+        <label class="field-label">Employee Name</label>
+        <input type="text" id="empName" placeholder="Your name" />
+      </div>
+      <div>
+        <label class="field-label">Week Starting (Saturday)</label>
+        <input type="date" id="weekStart" />
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="table-header">
+      <div>Day</div>
+      <div>Start</div>
+      <div>End</div>
+      <div>Break</div>
+      <div class="right">Hours</div>
+      <div></div>
+    </div>
+    <div id="daysContainer"></div>
+  </div>
+
+  <div class="total-bar">
+    <span class="label">Total Weekly Hours</span>
+    <span class="value" id="weekTotal">0.00<span class="unit">hrs</span></span>
+  </div>
+
+  <div class="card">
+    <label class="field-label">Certification Date</label>
+    <input type="date" id="certDate" />
+  </div>
+
+  <div class="actions">
+    <button class="btn-primary" id="openEmailBtn">Open in Mail</button>
+    <button id="copyBodyBtn">Copy Body</button>
+    <button id="copyAllBtn">Copy Recipients</button>
+    <button class="btn-danger" id="clearBtn">Reset</button>
+  </div>
+</div>
+
+<div class="toast" id="toast">Saved</div>
+
+<script>
+  const STORAGE_KEY = 'timesheet_v4';
+  const DAYS = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+  const DEFAULTS = {
+    2: { start: '07:00', end: '15:30', break: '30' },
+    3: { start: '07:00', end: '15:30', break: '30' },
+    4: { start: '07:00', end: '15:30', break: '30' },
+    5: { start: '07:00', end: '15:30', break: '30' },
+    6: { start: '09:30', end: '18:00', break: '30' }
+  };
+
+  const TO_EMAIL = 'aliceh@roboforce.ai';
+  const CC_EMAILS = [
+    'nicole.chen@hireio.com',
+    'jamie@hireio.us',
+    'karin.yang@hireio.com',
+    'alice@hireio.us',
+    'kate.wang@hireio.com',
+    'admin@deepreach.ai'
+  ];
+
+  function fmtISO(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function fmtPretty(d) {
+    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  }
+
+  function fmtShort(d) {
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  function getCurrentWeekSaturday() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dow = today.getDay();
+    const daysSinceSat = (dow + 1) % 7;
+    today.setDate(today.getDate() - daysSinceSat);
+    return today;
+  }
+
+  function addDays(d, n) {
+    const r = new Date(d);
+    r.setDate(r.getDate() + n);
+    return r;
+  }
+
+  function calcHours(start, end, brk) {
+    if (!start || !end) return 0;
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
+    let mins = (eh * 60 + em) - (sh * 60 + sm);
+    if (mins < 0) mins += 24 * 60;
+    mins -= (parseInt(brk) || 0);
+    return Math.max(0, mins) / 60;
+  }
+
+  function fmt12(t) {
+    if (!t) return '__________';
+    const [h, m] = t.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${ampm}`;
+  }
+
+  function renderDays(savedDays) {
+    const container = document.getElementById('daysContainer');
+    container.innerHTML = '';
+    const weekStartStr = document.getElementById('weekStart').value;
+    const weekStart = weekStartStr ? new Date(weekStartStr + 'T00:00:00') : getCurrentWeekSaturday();
+
+    DAYS.forEach((name, i) => {
+      const date = addDays(weekStart, i);
+      const saved = (savedDays && savedDays[i]) || null;
+      const defaults = DEFAULTS[i] || { start: '', end: '', break: '' };
+
+      const startVal = saved && saved.start !== undefined ? saved.start : defaults.start;
+      const endVal = saved && saved.end !== undefined ? saved.end : defaults.end;
+      const breakVal = saved && saved.break !== undefined ? saved.break : defaults.break;
+
+      const row = document.createElement('div');
+      row.className = 'day';
+      row.innerHTML = `
+        <div>
+          <div class="day-name">${name.slice(0,3)}</div>
+          <div class="day-date">${fmtShort(date)}</div>
+        </div>
+        <input type="time" data-day="${i}" data-field="start" value="${startVal}" />
+        <input type="time" data-day="${i}" data-field="end" value="${endVal}" />
+        <input type="number" min="0" step="5" data-day="${i}" data-field="break" value="${breakVal}" placeholder="0" />
+        <div class="day-total" data-total="${i}">0.00</div>
+        <button type="button" class="day-clear" data-clear="${i}" title="Clear this day">×</button>
+      `;
+      container.appendChild(row);
+    });
+
+    updateTotals();
+  }
+
+  function gatherState() {
+    const days = [];
+    DAYS.forEach((_, i) => {
+      days.push({
+        start: document.querySelector(`input[data-day="${i}"][data-field="start"]`)?.value || '',
+        end: document.querySelector(`input[data-day="${i}"][data-field="end"]`)?.value || '',
+        break: document.querySelector(`input[data-day="${i}"][data-field="break"]`)?.value || ''
+      });
+    });
+    return {
+      empName: document.getElementById('empName').value,
+      weekStart: document.getElementById('weekStart').value,
+      certDate: document.getElementById('certDate').value,
+      days
+    };
+  }
+
+  function updateTotals() {
+    let total = 0;
+    DAYS.forEach((_, i) => {
+      const s = document.querySelector(`input[data-day="${i}"][data-field="start"]`)?.value;
+      const e = document.querySelector(`input[data-day="${i}"][data-field="end"]`)?.value;
+      const b = document.querySelector(`input[data-day="${i}"][data-field="break"]`)?.value;
+      const t = calcHours(s, e, b);
+      const cell = document.querySelector(`[data-total="${i}"]`);
+      if (cell) {
+        cell.textContent = t.toFixed(2);
+        cell.style.color = t > 0 ? 'var(--text)' : 'var(--text-3)';
+      }
+      total += t;
+    });
+    const el = document.getElementById('weekTotal');
+    el.innerHTML = `${total.toFixed(2)}<span class="unit">hrs</span>`;
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(gatherState()));
+      document.getElementById('savedText').textContent =
+        `Saved at ${new Date().toLocaleTimeString()}`;
+    } catch (e) {}
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }
+
+  function buildBody() {
+    const s = gatherState();
+    const weekStart = s.weekStart ? new Date(s.weekStart + 'T00:00:00') : getCurrentWeekSaturday();
+    const lines = [
+      'Employee Timesheet for Approval',
+      '',
+      `Employee Name: ${s.empName || '__________'}`,
+      ''
+    ];
+    let total = 0;
+    DAYS.forEach((name, i) => {
+      const date = addDays(weekStart, i);
+      const d = s.days[i] || {};
+      const t = calcHours(d.start, d.end, d.break);
+      total += t;
+      lines.push(`${name}, ${fmtPretty(date)}`);
+      lines.push(`  * Start Time: ${fmt12(d.start)}`);
+      lines.push(`  * End Time: ${fmt12(d.end)}`);
+      lines.push(`  * Break (mins): ${d.break || '0'}`);
+      lines.push(`  * Total Hours: ${t.toFixed(2)}`);
+      lines.push('');
+    });
+    lines.push(`Total Weekly Hours: ${total.toFixed(2)}`);
+    lines.push('');
+    lines.push('Employee Certification:');
+    lines.push('I confirm that the above hours are accurate and complete.');
+    const cd = s.certDate ? new Date(s.certDate + 'T00:00:00') : new Date();
+    lines.push(`Date: ${fmtPretty(cd)}`);
+    return lines.join('\n');
+  }
+
+  function buildSubject() {
+    const s = gatherState();
+    const weekStart = s.weekStart ? new Date(s.weekStart + 'T00:00:00') : getCurrentWeekSaturday();
+    const weekEnd = addDays(weekStart, 6);
+    const name = s.empName ? ` - ${s.empName}` : '';
+    return `Timesheet for Approval${name} (${fmtShort(weekStart)} – ${fmtShort(weekEnd)})`;
+  }
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => t.classList.remove('show'), 1600);
+  }
+
+  const DEFAULT_NAME = 'Jonathan Goenadibrata';
+
+  const existing = load();
+  document.getElementById('empName').value = DEFAULT_NAME;
+  document.getElementById('weekStart').value = fmtISO(getCurrentWeekSaturday());
+  if (existing) {
+    if (existing.certDate) document.getElementById('certDate').value = existing.certDate;
+    else document.getElementById('certDate').value = fmtISO(new Date());
+    renderDays(null);
+  } else {
+    document.getElementById('certDate').value = fmtISO(new Date());
+    renderDays(null);
+  }
+  save();
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-clear]');
+    if (!btn) return;
+    const i = btn.getAttribute('data-clear');
+    const s = document.querySelector(`input[data-day="${i}"][data-field="start"]`);
+    const en = document.querySelector(`input[data-day="${i}"][data-field="end"]`);
+    const b = document.querySelector(`input[data-day="${i}"][data-field="break"]`);
+    if (s) s.value = '';
+    if (en) en.value = '';
+    if (b) b.value = '';
+    updateTotals();
+    save();
+  });
+
+  document.addEventListener('input', (e) => {
+    if (!e.target.matches('input')) return;
+    if (e.target.id === 'weekStart') {
+      const st = gatherState();
+      renderDays(st.days);
+    }
+    updateTotals();
+    save();
+  });
+
+  document.getElementById('openEmailBtn').addEventListener('click', () => {
+    save();
+    const subject = encodeURIComponent(buildSubject());
+    const body = encodeURIComponent(buildBody());
+    const cc = encodeURIComponent(CC_EMAILS.join(','));
+    window.location.href = `mailto:${TO_EMAIL}?cc=${cc}&subject=${subject}&body=${body}`;
+  });
+
+  document.getElementById('copyBodyBtn').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(buildBody()); toast('Body copied'); }
+    catch { toast('Copy failed'); }
+  });
+
+  document.getElementById('copyAllBtn').addEventListener('click', async () => {
+    const text = `To: ${TO_EMAIL}\nCc: ${CC_EMAILS.join(', ')}`;
+    try { await navigator.clipboard.writeText(text); toast('Recipients copied'); }
+    catch { toast('Copy failed'); }
+  });
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    if (!confirm('Reset all fields?')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    document.getElementById('empName').value = DEFAULT_NAME;
+    document.getElementById('weekStart').value = fmtISO(getCurrentWeekSaturday());
+    document.getElementById('certDate').value = fmtISO(new Date());
+    renderDays(null);
+    save();
+    toast('Reset');
+  });
+</script>
+</body>
+</html>
