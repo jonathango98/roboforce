@@ -346,7 +346,7 @@
     { name: 'Jonathan' },
     { name: 'Donovon' },
     { name: 'Chai' },
-    { name: 'Charles' },
+    { name: 'Ahmed' },
   ];
 
   function storageKey(date) {
@@ -361,6 +361,7 @@
         name:  document.getElementById(`op-name-${idPart}`).value,
         good:  document.getElementById(`op-good-${idPart}`).value,
         bad:   document.getElementById(`op-bad-${idPart}`).value,
+        umi:   document.getElementById(`op-umi-${idPart}`).value,
         perf:  document.getElementById(`op-perf-${idPart}`).value,
         notes: document.getElementById(`op-notes-${idPart}`).value,
       });
@@ -417,6 +418,7 @@
         <div class="field"><div class="field-label">Name</div><input type="text" class="name-field" id="op-name-${id}" placeholder="Operator name" value="${defaults.name||''}" /></div>
         <div class="field"><div class="field-label">Good</div><input type="number" id="op-good-${id}" placeholder="0" min="0" value="${defaults.good||''}" /></div>
         <div class="field"><div class="field-label">Bad</div><input type="number" id="op-bad-${id}" placeholder="0" min="0" value="${defaults.bad||''}" /></div>
+        <div class="field"><div class="field-label">UMI</div><input type="number" id="op-umi-${id}" placeholder="0" min="0" value="${defaults.umi||''}" /></div>
         <div class="field"><div class="field-label">Performance</div><select id="op-perf-${id}" style="width:130px"><option ${defaults.perf==='Good'||!defaults.perf?'selected':''}>Good</option><option ${defaults.perf==='Fair'?'selected':''}>Fair</option><option ${defaults.perf==='Bad'?'selected':''}>Bad</option></select></div>
       </div>
       <div class="field"><div class="field-label">Notes</div><textarea class="notes-field" id="op-notes-${id}" placeholder="Optional notes...">${defaults.notes||''}</textarea></div>
@@ -459,10 +461,12 @@
       const name  = document.getElementById(`op-name-${idPart}`).value.trim() || '—';
       const good  = document.getElementById(`op-good-${idPart}`).value.trim() || '—';
       const bad   = document.getElementById(`op-bad-${idPart}`).value.trim() || '—';
+      const umi   = document.getElementById(`op-umi-${idPart}`).value.trim() || '—';
       const perf  = document.getElementById(`op-perf-${idPart}`).value.trim() || '—';
       const notes = document.getElementById(`op-notes-${idPart}`).value.trim();
       lines.push(`  - Operator name: ${name}`);
-      lines.push(`    - Quantity (Good/Bad): ${good}/${bad}`);
+      lines.push(`    - GELLO (Good/Bad): ${good}/${bad}`);
+      lines.push(`    - UMI: ${umi}`);
       lines.push(`    - Performance: ${perf}`);
       lines.push(`    - Notes:${notes ? ' ' + notes : ''}`);
     });
