@@ -20,6 +20,9 @@
     --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.05);
     --radius: 12px;
     --radius-sm: 7px;
+    --umi: #3b82f6;
+    --gello: #8b5cf6;
+    --inference: #10b981;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -34,7 +37,7 @@
   }
 
   .container {
-    max-width: 800px;
+    max-width: 860px;
     margin: 0 auto;
     padding: 28px 20px 56px;
     display: flex;
@@ -42,25 +45,9 @@
     gap: 16px;
   }
 
-  .page-header {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    margin-bottom: 4px;
-  }
+  .page-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
 
-  h1 {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.3px;
-  }
-
-  .page-header .date-chip {
-    font-size: 12px;
-    color: var(--text-3);
-    font-weight: 500;
-  }
+  h1 { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
 
   .card {
     background: var(--surface);
@@ -73,47 +60,20 @@
     box-shadow: var(--shadow);
   }
 
-  .card-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+  .card-header { display: flex; align-items: center; gap: 8px; }
 
-  .card-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    flex-shrink: 0;
-  }
+  .card-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
 
   .card-title {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    color: var(--text-3);
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.07em; color: var(--text-3);
   }
 
-  .row {
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
+  .row { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
 
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-  }
+  .field { display: flex; flex-direction: column; gap: 5px; }
 
-  .field-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-2);
-    letter-spacing: 0.01em;
-  }
+  .field-label { font-size: 12px; font-weight: 600; color: var(--text-2); letter-spacing: 0.01em; }
 
   input[type="date"],
   input[type="text"],
@@ -144,142 +104,192 @@
   }
 
   input[type="number"] { width: 96px; }
-  input[type="text"].name-field { width: 168px; }
-  select { width: 148px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239c9590' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; cursor: pointer; }
-
-  textarea.notes-field {
-    width: 100%;
-    min-height: 64px;
-    resize: vertical;
-    line-height: 1.5;
-  }
-  textarea.event-field {
-    width: 100%;
-    min-height: 80px;
-    resize: vertical;
-    line-height: 1.5;
+  input[type="text"] { width: 168px; }
+  select {
+    width: 148px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239c9590' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+    padding-right: 28px; cursor: pointer;
   }
 
-  .operator-block {
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    background: var(--surface-sub);
-    position: relative;
-    transition: border-color .15s;
-  }
-
-  .operator-block:hover { border-color: var(--border-mid); }
-
-  .op-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .op-label {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-2);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-
-  .btn-remove {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text-3);
-    font-size: 16px;
-    line-height: 1;
-    padding: 2px 4px;
-    transition: color .15s;
-    border-radius: 4px;
-  }
-  .btn-remove:hover { color: #ef4444; background: #fef2f2; }
+  textarea.event-field { width: 100%; min-height: 80px; resize: vertical; line-height: 1.5; }
 
   .btn {
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    border-radius: var(--radius-sm);
-    padding: 8px 16px;
-    border: none;
+    font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    border-radius: var(--radius-sm); padding: 8px 16px; border: none;
     transition: background .15s, box-shadow .15s, transform .1s;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+    display: inline-flex; align-items: center; gap: 6px;
   }
-
   .btn:active { transform: scale(0.98); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
 
-  .btn-secondary {
-    background: var(--surface);
-    border: 1px solid var(--border-mid);
-    color: var(--text-2);
-  }
+  .btn-secondary { background: var(--surface); border: 1px solid var(--border-mid); color: var(--text-2); }
   .btn-secondary:hover { background: var(--bg); border-color: var(--accent); color: var(--accent); }
 
-  .btn-primary {
-    background: var(--accent);
-    color: #fff;
-    box-shadow: 0 1px 3px rgba(194,130,12,0.3);
-  }
+  .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 1px 3px rgba(194,130,12,0.3); }
   .btn-primary:hover { background: var(--accent-h); }
 
   .btn-copy {
-    background: #166534;
-    color: #fff;
-    align-self: flex-end;
-    font-size: 13px;
-    padding: 9px 20px;
+    background: #166534; color: #fff; font-size: 13px; padding: 9px 20px;
     box-shadow: 0 1px 3px rgba(22,101,52,0.25);
   }
   .btn-copy:hover { background: #14532d; }
-  .btn-copy.copied { background: #22c55e; color: #fff; }
+  .btn-copy.copied { background: #22c55e; }
+
+  .btn-remove {
+    background: none; border: none; cursor: pointer; color: var(--text-3);
+    font-size: 16px; line-height: 1; padding: 2px 4px;
+    transition: color .15s; border-radius: 4px;
+  }
+  .btn-remove:hover { color: #ef4444; background: #fef2f2; }
 
   .preview-box {
-    background: #13120f;
-    color: #c9c4bb;
-    border-radius: 9px;
-    padding: 18px 20px;
-    font-family: 'SF Mono', 'Fira Mono', 'Consolas', monospace;
-    font-size: 12.5px;
-    line-height: 1.75;
-    white-space: pre-wrap;
-    word-break: break-word;
-    min-height: 130px;
-    border: 1px solid #242220;
+    background: #13120f; color: #c9c4bb; border-radius: 9px;
+    padding: 18px 20px; font-family: 'SF Mono', 'Fira Mono', 'Consolas', monospace;
+    font-size: 12.5px; line-height: 1.75; white-space: pre-wrap;
+    word-break: break-word; min-height: 130px; border: 1px solid #242220;
   }
 
-  .actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
+  .actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+
+  /* ---- Station styles ---- */
+
+  .station-groups { display: flex; flex-direction: column; gap: 18px; }
+
+  .station-group-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; margin-bottom: 8px;
+  }
+
+  .station-block {
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; background: var(--surface-sub);
+    display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;
+  }
+  .station-block:last-of-type { margin-bottom: 0; }
+
+  .station-name {
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+
+  .station-header-row {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  input.station-label-input {
+    background: none; border: none; border-bottom: 1px dashed transparent;
+    border-radius: 0; padding: 0; width: auto; min-width: 60px; max-width: 220px;
+    box-shadow: none; cursor: text;
+  }
+  input.station-label-input:hover { border-bottom-color: currentColor; opacity: 0.6; }
+  input.station-label-input:focus { background: none; border-bottom-color: currentColor; box-shadow: none; opacity: 1; }
+
+  .station-table { width: 100%; border-collapse: collapse; }
+
+  .station-table th {
+    font-size: 11px; font-weight: 600; color: var(--text-3);
+    text-align: left; padding: 0 8px 5px; border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .station-table td { padding: 3px 4px; vertical-align: middle; }
+  .station-table td:last-child { width: 28px; text-align: center; }
+
+  .station-table input[type="text"] { width: 136px; font-size: 13px; padding: 5px 8px; }
+  .station-table input[type="number"] { width: 80px; font-size: 13px; padding: 5px 8px; }
+
+  .btn-add-row {
+    font-family: inherit; font-size: 12px; font-weight: 500; color: var(--text-3);
+    background: none; border: 1px dashed var(--border-mid); border-radius: var(--radius-sm);
+    padding: 5px 12px; cursor: pointer; transition: all .15s; align-self: flex-start;
+  }
+  .btn-add-row:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
+  .add-station-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* ---- Person summary styles ---- */
+
+  .person-block {
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; background: var(--surface-sub);
+    display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px;
+  }
+  .person-block:last-child { margin-bottom: 0; }
+
+  .person-name { font-size: 14px; font-weight: 700; color: var(--text); }
+
+  .person-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .person-stat {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 10px; font-size: 12.5px;
+  }
+
+  .person-stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .person-stat-value { color: var(--text-2); }
+
+  .person-extras { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+  .person-extras .field { flex: 1; min-width: 120px; }
+  .person-extras select { width: 120px; }
+  .person-extras input[type="text"] { width: 100%; }
+
+  .empty-state { font-size: 13px; color: var(--text-3); text-align: center; padding: 20px; }
+
+  /* ---- Analysis grid ---- */
+
+  .analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
     gap: 10px;
   }
 
-  .section-divider {
-    height: 1px;
-    background: var(--border);
-    margin: 0 -22px;
+  .analysis-tile {
+    background: var(--surface-sub);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
 
-  #operators { display: flex; flex-direction: column; gap: 10px; }
+  .analysis-tile-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-3);
+  }
+
+  .analysis-tile-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+  }
+
+  .analysis-tile-unit {
+    font-size: 11px;
+    color: var(--text-3);
+    font-weight: 500;
+  }
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="page-header">
-    <h1>Shift Report</h1>
-  </div>
 
-  <!-- Header -->
+<datalist id="known-operators">
+  <option value="Jonathan">
+  <option value="Donovon">
+  <option value="Chai">
+  <option value="Ahmed">
+</datalist>
+
+<div class="container">
+  <div class="page-header"><h1>Shift Report</h1></div>
+
+  <!-- Report Header -->
   <div class="card">
     <div class="card-header"><div class="card-dot"></div><div class="card-title">Report Header</div></div>
     <div class="row">
@@ -298,14 +308,24 @@
     </div>
   </div>
 
-  <!-- Operators -->
+  <!-- Station Input -->
   <div class="card">
-    <div class="card-header"><div class="card-dot"></div><div class="card-title">Operator Summary</div></div>
-    <div id="operators"></div>
-    <button class="btn btn-secondary" onclick="addOperator()">+ Add Operator</button>
+    <div class="card-header"><div class="card-dot"></div><div class="card-title">Station Input</div></div>
+    <div id="stations-container" class="station-groups"></div>
+    <div class="add-station-row">
+      <button class="btn btn-secondary btn-sm" onclick="addStation('UMI')">+ UMI Station</button>
+      <button class="btn btn-secondary btn-sm" onclick="addStation('GELLO')">+ GELLO Station</button>
+      <button class="btn btn-secondary btn-sm" onclick="addStation('INFERENCE')">+ Inference Station</button>
+    </div>
   </div>
 
-  <!-- What Happened -->
+  <!-- Operator Summary (auto-computed) -->
+  <div class="card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-title">Operator Summary</div></div>
+    <div id="person-summary"><div class="empty-state">Add operators to stations above to see summary.</div></div>
+  </div>
+
+  <!-- What Happened Today -->
   <div class="card">
     <div class="card-header"><div class="card-dot"></div><div class="card-title">What Happened Today</div></div>
     <div class="field">
@@ -326,7 +346,13 @@
     </div>
   </div>
 
-  <!-- Preview + Copy -->
+  <!-- Analysis -->
+  <div class="card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-title">Shift Analysis</div></div>
+    <div id="analysis-grid" class="analysis-grid"></div>
+  </div>
+
+  <!-- Preview -->
   <div class="card">
     <div class="card-header"><div class="card-dot"></div><div class="card-title">Preview</div></div>
     <div class="preview-box" id="preview">Generate preview below...</div>
@@ -338,189 +364,607 @@
 </div>
 
 <script>
-  let opCount = 0;
-  let currentDate = '';
-  let isSwitchingDate = false;
+const STATION_TYPES = {
+  UMI:       { label: 'UMI',       color: 'var(--umi)',       fields: ['count'] },
+  GELLO:     { label: 'GELLO',     color: 'var(--gello)',     fields: ['sessions', 'avgTime', 'totalTime'] },
+  INFERENCE: { label: 'Inference', color: 'var(--inference)', fields: ['count'] },
+};
 
-  const DEFAULT_OPERATORS = [
-    { name: 'Jonathan' },
-    { name: 'Donovon' },
-    { name: 'Chai' },
-    { name: 'Ahmed' },
-  ];
+const FIELD_LABELS = {
+  count: 'Count', sessions: 'Sessions', avgTime: 'Avg (sec)', totalTime: 'Total (min)',
+};
 
-  function storageKey(date) {
-    return `shift-report:${date}`;
+let stations = [
+  { id: 'umi-1', type: 'UMI', label: 'UMI Station 1' },
+  { id: 'umi-2', type: 'UMI', label: 'UMI Station 2' },
+];
+
+let stationRows = {};    // { [stationId]: [{ name, ...fields }] }
+let personExtras = {};   // { [name]: { perf, notes } }
+let stationCounts = { UMI: 2, UR: 0 }; // UR shared between GELLO and INFERENCE
+let currentDate = '';
+let isSwitchingDate = false;
+
+// ---- Helpers ----
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmt(n) {
+  if (n === '—' || n == null) return '—';
+  const v = parseFloat(n);
+  if (isNaN(v)) return '—';
+  return parseFloat(v.toFixed(2)).toString();
+}
+
+function emptyRow(type) {
+  const r = { name: '' };
+  STATION_TYPES[type].fields.forEach(f => r[f] = '');
+  return r;
+}
+
+function ensureRows(stationId, type) {
+  if (!stationRows[stationId] || stationRows[stationId].length === 0) {
+    stationRows[stationId] = [emptyRow(type)];
   }
+}
 
-  function collectData() {
-    const operators = [];
-    document.querySelectorAll('.operator-block').forEach(el => {
-      const idPart = el.id.split('-')[1];
-      operators.push({
-        name:       document.getElementById(`op-name-${idPart}`).value,
-        sessions:   document.getElementById(`op-sessions-${idPart}`).value,
-        avgTime:    document.getElementById(`op-avgtime-${idPart}`).value,
-        totalTime:  document.getElementById(`op-totaltime-${idPart}`).value,
-        umi:        document.getElementById(`op-umi-${idPart}`).value,
-        perf:       document.getElementById(`op-perf-${idPart}`).value,
-        notes:      document.getElementById(`op-notes-${idPart}`).value,
-      });
+// ---- Render Stations ----
+
+function renderStations() {
+  const container = document.getElementById('stations-container');
+  container.innerHTML = '';
+
+  const groups = {};
+  stations.forEach(s => { if (!groups[s.type]) groups[s.type] = []; groups[s.type].push(s); });
+
+  ['UMI', 'GELLO', 'INFERENCE'].forEach(type => {
+    if (!groups[type]) return;
+    const typeInfo = STATION_TYPES[type];
+    const groupDiv = document.createElement('div');
+    groupDiv.className = 'station-group';
+
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'station-group-label';
+    labelDiv.style.color = typeInfo.color;
+    labelDiv.textContent = `${typeInfo.label} Stations`;
+    groupDiv.appendChild(labelDiv);
+
+    groups[type].forEach(s => {
+      ensureRows(s.id, s.type);
+      groupDiv.appendChild(buildStationBlock(s));
     });
-    return {
-      shift:     document.getElementById('shift').value,
-      operators,
-      keyEvents: document.getElementById('keyEvents').value,
-      issues:    document.getElementById('issues').value,
-      actions:   document.getElementById('actions').value,
-      followup:  document.getElementById('followup').value,
-    };
-  }
 
-  function saveCurrentDate() {
-    if (!currentDate) return;
-    localStorage.setItem(storageKey(currentDate), JSON.stringify(collectData()));
-  }
+    container.appendChild(groupDiv);
+  });
+}
 
-  function loadDate(date) {
-    isSwitchingDate = true;
-    const raw = localStorage.getItem(storageKey(date));
-    const data = raw ? JSON.parse(raw) : null;
+function buildStationBlock(station) {
+  const typeInfo = STATION_TYPES[station.type];
+  const rows = stationRows[station.id] || [];
 
-    document.getElementById('shift').value = data?.shift || 'Morning';
-    document.getElementById('keyEvents').value = data?.keyEvents || '';
-    document.getElementById('issues').value    = data?.issues    || '';
-    document.getElementById('actions').value   = data?.actions   || '';
-    document.getElementById('followup').value  = data?.followup  || '';
+  const div = document.createElement('div');
+  div.className = 'station-block';
 
-    document.getElementById('operators').innerHTML = '';
-    opCount = 0;
-    const ops = data?.operators?.length ? data.operators : DEFAULT_OPERATORS;
-    ops.forEach(op => addOperator(op));
+  const stationHeader = document.createElement('div');
+  stationHeader.className = 'station-header-row';
 
-    currentDate = date;
-    isSwitchingDate = false;
-    generatePreview();
-  }
-
-  function addOperator(defaults = {}) {
-    opCount++;
-    const id = opCount;
-    const container = document.getElementById('operators');
-    const div = document.createElement('div');
-    div.className = 'operator-block';
-    div.id = `op-${id}`;
-    div.innerHTML = `
-      <div class="op-header">
-        <span class="op-label">Operator ${id}</span>
-        <button class="btn-remove" onclick="removeOperator(${id})" title="Remove">×</button>
-      </div>
-      <div class="row">
-        <div class="field"><div class="field-label">Name</div><input type="text" class="name-field" id="op-name-${id}" placeholder="Operator name" value="${defaults.name||''}" /></div>
-        <div class="field"><div class="field-label">Total Sessions</div><input type="number" id="op-sessions-${id}" placeholder="0" min="0" value="${defaults.sessions||''}" /></div>
-        <div class="field"><div class="field-label">Avg Time (sec)</div><input type="number" id="op-avgtime-${id}" placeholder="0" min="0" value="${defaults.avgTime||''}" /></div>
-        <div class="field"><div class="field-label">Total Time (min)</div><input type="number" id="op-totaltime-${id}" placeholder="0" min="0" value="${defaults.totalTime||''}" /></div>
-        <div class="field"><div class="field-label">UMI</div><input type="number" id="op-umi-${id}" placeholder="0" min="0" value="${defaults.umi||''}" /></div>
-        <div class="field"><div class="field-label">Performance</div><select id="op-perf-${id}" style="width:130px"><option ${defaults.perf==='Good'||!defaults.perf?'selected':''}>Good</option><option ${defaults.perf==='Fair'?'selected':''}>Fair</option><option ${defaults.perf==='Bad'?'selected':''}>Bad</option></select></div>
-      </div>
-      <div class="field"><div class="field-label">Notes</div><textarea class="notes-field" id="op-notes-${id}" placeholder="Optional notes...">${defaults.notes||''}</textarea></div>
-    `;
-    container.appendChild(div);
-    autoNumber();
-  }
-
-  function removeOperator(id) {
-    const el = document.getElementById(`op-${id}`);
-    if (el) el.remove();
-    autoNumber();
+  const nameLine = document.createElement('input');
+  nameLine.type = 'text';
+  nameLine.className = 'station-name station-label-input';
+  nameLine.style.color = typeInfo.color;
+  nameLine.value = station.label || station.id;
+  nameLine.addEventListener('input', () => {
+    station.label = nameLine.value;
     saveCurrentDate();
-  }
+  });
+  stationHeader.appendChild(nameLine);
 
-  function autoNumber() {
-    document.querySelectorAll('.operator-block').forEach((el, i) => {
-      el.querySelector('.op-label').textContent = `Operator ${i + 1}`;
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'btn-remove';
+  deleteBtn.textContent = '×';
+  deleteBtn.title = 'Delete station';
+  deleteBtn.onclick = () => deleteStation(station.id);
+  stationHeader.appendChild(deleteBtn);
+
+  div.appendChild(stationHeader);
+
+  const table = document.createElement('table');
+  table.className = 'station-table';
+
+  const thead = document.createElement('thead');
+  const hrow = document.createElement('tr');
+  const thName = document.createElement('th');
+  thName.textContent = 'Operator';
+  hrow.appendChild(thName);
+  typeInfo.fields.forEach(f => {
+    const th = document.createElement('th');
+    th.textContent = FIELD_LABELS[f];
+    hrow.appendChild(th);
+  });
+  hrow.appendChild(document.createElement('th'));
+  thead.appendChild(hrow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  rows.forEach((row, idx) => {
+    const tr = document.createElement('tr');
+
+    const tdName = document.createElement('td');
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.setAttribute('list', 'known-operators');
+    nameInput.setAttribute('autocomplete', 'off');
+    nameInput.value = row.name || '';
+    nameInput.placeholder = 'Name';
+    nameInput.dataset.station = station.id;
+    nameInput.dataset.row = idx;
+    nameInput.dataset.field = 'name';
+    nameInput.className = 'station-input';
+    tdName.appendChild(nameInput);
+    tr.appendChild(tdName);
+
+    typeInfo.fields.forEach(f => {
+      const td = document.createElement('td');
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.min = '0';
+      input.value = row[f] || '';
+      input.placeholder = '—';
+      input.dataset.station = station.id;
+      input.dataset.row = idx;
+      input.dataset.field = f;
+      input.className = 'station-input';
+      td.appendChild(input);
+      tr.appendChild(td);
     });
-  }
 
-  function formatDate(val) {
-    if (!val) return '';
-    const [y, m, d] = val.split('-');
-    return `${m}.${d}.${y}`;
-  }
+    const tdRemove = document.createElement('td');
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'btn-remove';
+    removeBtn.textContent = '×';
+    removeBtn.title = 'Remove row';
+    removeBtn.onclick = () => removeRow(station.id, idx);
+    tdRemove.appendChild(removeBtn);
+    tr.appendChild(tdRemove);
 
-  function generatePreview() {
-    const date = formatDate(document.getElementById('reportDate').value) || '—';
-    const shift = document.getElementById('shift').value;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  div.appendChild(table);
 
-    let lines = [];
-    lines.push(`# ${date}`);
-    lines.push(`Shift: ${shift}`);
-    lines.push('');
-    lines.push('- Operator Summary');
+  const addBtn = document.createElement('button');
+  addBtn.className = 'btn-add-row';
+  addBtn.textContent = '+ Add Operator';
+  addBtn.onclick = () => addRow(station.id);
+  div.appendChild(addBtn);
 
-    document.querySelectorAll('.operator-block').forEach(el => {
-      const idPart = el.id.split('-')[1];
-      const name  = document.getElementById(`op-name-${idPart}`).value.trim() || '—';
-      const sessions  = document.getElementById(`op-sessions-${idPart}`).value.trim() || '—';
-      const avgTime   = document.getElementById(`op-avgtime-${idPart}`).value.trim() || '—';
-      const totalTime = document.getElementById(`op-totaltime-${idPart}`).value.trim() || '—';
-      const umi       = document.getElementById(`op-umi-${idPart}`).value.trim() || '—';
-      const perf      = document.getElementById(`op-perf-${idPart}`).value.trim() || '—';
-      const notes     = document.getElementById(`op-notes-${idPart}`).value.trim();
-      lines.push(`  - Operator name: ${name}`);
-      lines.push(`    - GELLO (Sessions/Avg sec/Total min): ${sessions}/${avgTime}/${totalTime}`);
-      lines.push(`    - UMI: ${umi}`);
-      lines.push(`    - Performance: ${perf}`);
-      lines.push(`    - Notes:${notes ? ' ' + notes : ''}`);
+  return div;
+}
+
+// ---- Person Summary ----
+
+function collectUniqueNames() {
+  const seen = new Set();
+  const names = [];
+  stations.forEach(s => {
+    (stationRows[s.id] || []).forEach(row => {
+      const n = (row.name || '').trim();
+      if (n && !seen.has(n)) { seen.add(n); names.push(n); }
     });
+  });
+  return names;
+}
 
-    lines.push('What happened today');
-
-    const keyEvents = document.getElementById('keyEvents').value.trim();
-    const issues    = document.getElementById('issues').value.trim();
-    const actions   = document.getElementById('actions').value.trim();
-    const followup  = document.getElementById('followup').value.trim();
-
-    lines.push(`- Key events:${keyEvents ? ' ' + keyEvents : ''}`);
-    lines.push(`- Issues or delays:${issues ? ' ' + issues : ''}`);
-    lines.push(`- Actions taken:${actions ? ' ' + actions : ''}`);
-    lines.push(`- Follow-up needed:${followup ? ' ' + followup : ''}`);
-
-    const text = lines.join('\n');
-    document.getElementById('preview').textContent = text;
-    return text;
-  }
-
-  function copyToClipboard() {
-    const text = generatePreview();
-    navigator.clipboard.writeText(text).then(() => {
-      const btn = document.getElementById('copyBtn');
-      btn.textContent = 'Copied!';
-      btn.classList.add('copied');
-      setTimeout(() => {
-        btn.textContent = 'Copy to Clipboard';
-        btn.classList.remove('copied');
-      }, 2000);
-    });
-  }
-
-  // Auto-save on any input change
-  document.addEventListener('input', () => { if (!isSwitchingDate) saveCurrentDate(); });
-  document.addEventListener('change', e => {
-    if (e.target.id === 'reportDate') {
-      saveCurrentDate();
-      loadDate(e.target.value);
-    } else if (!isSwitchingDate) {
-      saveCurrentDate();
+function aggregateForPerson(name) {
+  const agg = {};
+  stations.forEach(s => {
+    const type = s.type;
+    if (!agg[type]) {
+      agg[type] = { _count: 0 };
+      STATION_TYPES[type].fields.forEach(f => agg[type][f] = 0);
     }
+    (stationRows[s.id] || []).forEach(row => {
+      if ((row.name || '').trim() !== name) return;
+      STATION_TYPES[type].fields.forEach(f => {
+        const v = parseFloat(row[f]);
+        if (!isNaN(v) && v > 0) agg[type][f] += v;
+      });
+      agg[type]._count++;
+    });
   });
 
-  // Init
-  const today = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
-  document.getElementById('reportDate').value = todayStr;
-  loadDate(todayStr);
+  // Recompute GELLO avg from totalTime if possible
+  if (agg.GELLO && agg.GELLO._count > 0 && agg.GELLO.sessions > 0 && agg.GELLO.totalTime > 0) {
+    agg.GELLO.avgTime = Math.round(agg.GELLO.totalTime * 60 / agg.GELLO.sessions);
+  }
+
+  return agg;
+}
+
+function renderPersonSummary() {
+  const names = collectUniqueNames();
+  const container = document.getElementById('person-summary');
+  container.innerHTML = '';
+
+  if (names.length === 0) {
+    container.innerHTML = '<div class="empty-state">Add operators to stations above to see summary.</div>';
+    return;
+  }
+
+  names.forEach(name => container.appendChild(buildPersonBlock(name)));
+}
+
+function buildPersonBlock(name) {
+  const agg = aggregateForPerson(name);
+  const extras = personExtras[name] || {};
+
+  const div = document.createElement('div');
+  div.className = 'person-block';
+
+  const nameEl = document.createElement('div');
+  nameEl.className = 'person-name';
+  nameEl.textContent = name;
+  div.appendChild(nameEl);
+
+  const statsDiv = document.createElement('div');
+  statsDiv.className = 'person-stats';
+
+  ['GELLO', 'UMI', 'INFERENCE'].forEach(type => {
+    const a = agg[type];
+    if (!a || a._count === 0) return;
+    const typeInfo = STATION_TYPES[type];
+
+    let statStr;
+    if (type === 'GELLO') {
+      const sessions = fmt(a.sessions || 0) !== '0' ? fmt(a.sessions) : '—';
+      const avg      = a.avgTime > 0 ? fmt(a.avgTime) : '—';
+      const total    = a.totalTime > 0 ? fmt(a.totalTime) : '—';
+      statStr = `${sessions} sessions / ${avg} avg sec / ${total} min`;
+    } else {
+      statStr = `${a.count > 0 ? fmt(a.count) : '—'}`;
+    }
+
+    const chip = document.createElement('div');
+    chip.className = 'person-stat';
+    chip.innerHTML = `<span class="person-stat-label" style="color:${typeInfo.color}">${esc(typeInfo.label)}</span><span class="person-stat-value">${esc(statStr)}</span>`;
+    statsDiv.appendChild(chip);
+  });
+  div.appendChild(statsDiv);
+
+  const extrasDiv = document.createElement('div');
+  extrasDiv.className = 'person-extras';
+
+  const perfField = document.createElement('div');
+  perfField.className = 'field';
+  const perfLabel = document.createElement('div');
+  perfLabel.className = 'field-label';
+  perfLabel.textContent = 'Performance';
+  const perfSelect = document.createElement('select');
+  perfSelect.style.width = '120px';
+  ['Good', 'Fair', 'Bad'].forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt; o.textContent = opt;
+    if ((extras.perf || 'Good') === opt) o.selected = true;
+    perfSelect.appendChild(o);
+  });
+  perfSelect.onchange = () => updatePersonExtra(name, 'perf', perfSelect.value);
+  perfField.appendChild(perfLabel);
+  perfField.appendChild(perfSelect);
+  extrasDiv.appendChild(perfField);
+
+  const notesField = document.createElement('div');
+  notesField.className = 'field';
+  notesField.style.flex = '1';
+  const notesLabel = document.createElement('div');
+  notesLabel.className = 'field-label';
+  notesLabel.textContent = 'Notes';
+  const notesInput = document.createElement('input');
+  notesInput.type = 'text';
+  notesInput.style.width = '100%';
+  notesInput.value = extras.notes || '';
+  notesInput.placeholder = 'Optional notes...';
+  notesInput.oninput = () => updatePersonExtra(name, 'notes', notesInput.value);
+  notesField.appendChild(notesLabel);
+  notesField.appendChild(notesInput);
+  extrasDiv.appendChild(notesField);
+
+  div.appendChild(extrasDiv);
+  return div;
+}
+
+// ---- Analysis ----
+
+function renderAnalysis() {
+  let totalSessions = 0, totalUMI = 0, totalInference = 0;
+  let totalTimeMin = 0, totalTimeRows = 0;
+
+  stations.forEach(s => {
+    (stationRows[s.id] || []).forEach(row => {
+      if (!(row.name || '').trim()) return;
+      if (s.type === 'GELLO') {
+        const sessions = parseFloat(row.sessions);
+        const time     = parseFloat(row.totalTime);
+        if (!isNaN(sessions) && sessions > 0) totalSessions += sessions;
+        if (!isNaN(time)     && time > 0)     { totalTimeMin += time; totalTimeRows++; }
+      } else if (s.type === 'UMI') {
+        const count = parseFloat(row.count);
+        if (!isNaN(count) && count > 0) totalUMI += count;
+      } else if (s.type === 'INFERENCE') {
+        const count = parseFloat(row.count);
+        if (!isNaN(count) && count > 0) totalInference += count;
+      }
+    });
+  });
+
+  const totalTests  = totalSessions + totalUMI + totalInference;
+  const avgTimeSec  = (totalSessions > 0 && totalTimeMin > 0)
+    ? parseFloat((totalTimeMin * 60 / totalSessions).toFixed(2))
+    : null;
+
+  const tiles = [
+    { label: 'Total Tests',       value: fmt(totalTests) || '0',           unit: 'all stations' },
+    { label: 'GELLO Sessions',    value: fmt(totalSessions) || '0',         unit: 'sessions' },
+    { label: 'UMI Count',         value: fmt(totalUMI) || '0',              unit: 'tasks' },
+    { label: 'Inference Count',   value: fmt(totalInference) || '0',        unit: 'tasks' },
+    { label: 'Total Time',        value: fmt(totalTimeMin) || '0',          unit: 'minutes' },
+    { label: 'Avg Time',          value: avgTimeSec != null ? fmt(avgTimeSec) : '—', unit: 'sec / session' },
+  ];
+
+  const grid = document.getElementById('analysis-grid');
+  grid.innerHTML = '';
+  tiles.forEach(({ label, value, unit }) => {
+    const tile = document.createElement('div');
+    tile.className = 'analysis-tile';
+    tile.innerHTML = `
+      <div class="analysis-tile-label">${esc(label)}</div>
+      <div class="analysis-tile-value">${esc(value)}</div>
+      <div class="analysis-tile-unit">${esc(unit)}</div>`;
+    grid.appendChild(tile);
+  });
+}
+
+// ---- Row / Station Management ----
+
+function syncStationInputs() {
+  document.querySelectorAll('.station-input').forEach(input => {
+    const { station, row, field } = input.dataset;
+    const idx = parseInt(row);
+    if (stationRows[station] && stationRows[station][idx] !== undefined) {
+      stationRows[station][idx][field] = input.value;
+    }
+  });
+}
+
+function addRow(stationId) {
+  syncStationInputs();
+  const s = stations.find(x => x.id === stationId);
+  stationRows[stationId].push(emptyRow(s.type));
+  renderStations();
+  renderPersonSummary();
+  renderAnalysis();
+  saveCurrentDate();
+}
+
+function removeRow(stationId, idx) {
+  syncStationInputs();
+  stationRows[stationId].splice(idx, 1);
+  if (stationRows[stationId].length === 0) {
+    const s = stations.find(x => x.id === stationId);
+    stationRows[stationId] = [emptyRow(s.type)];
+  }
+  renderStations();
+  renderPersonSummary();
+  renderAnalysis();
+  saveCurrentDate();
+}
+
+function deleteStation(stationId) {
+  syncStationInputs();
+  stations = stations.filter(s => s.id !== stationId);
+  delete stationRows[stationId];
+  renderStations();
+  renderPersonSummary();
+  renderAnalysis();
+  saveCurrentDate();
+}
+
+function addStation(type) {
+  syncStationInputs();
+  let id, label;
+  if (type === 'UMI') {
+    stationCounts.UMI++;
+    id = `umi-${stationCounts.UMI}`;
+    label = `UMI Station ${stationCounts.UMI}`;
+  } else {
+    stationCounts.UR++;
+    id = `ur-${stationCounts.UR}`;
+    label = `UR${stationCounts.UR}`;
+  }
+  stations.push({ id, type, label });
+  stationRows[id] = [emptyRow(type)];
+  renderStations();
+  renderAnalysis();
+  saveCurrentDate();
+}
+
+function updatePersonExtra(name, field, value) {
+  if (!personExtras[name]) personExtras[name] = { perf: 'Good', notes: '' };
+  personExtras[name][field] = value;
+  saveCurrentDate();
+}
+
+// ---- Persistence ----
+
+function storageKey(date) { return `shift-report:${date}`; }
+
+function collectData() {
+  syncStationInputs();
+  return {
+    shift:        document.getElementById('shift').value,
+    stations:     stations.map(({ id, type, num }) => ({ id, type, num })),
+    stationCounts,
+    stationRows,
+    personExtras,
+    keyEvents:    document.getElementById('keyEvents').value,
+    issues:       document.getElementById('issues').value,
+    actions:      document.getElementById('actions').value,
+    followup:     document.getElementById('followup').value,
+  };
+}
+
+function saveCurrentDate() {
+  if (!currentDate || isSwitchingDate) return;
+  localStorage.setItem(storageKey(currentDate), JSON.stringify(collectData()));
+}
+
+function loadDate(date) {
+  isSwitchingDate = true;
+  const raw = localStorage.getItem(storageKey(date));
+  const data = raw ? JSON.parse(raw) : null;
+
+  document.getElementById('shift').value     = data?.shift     || 'Morning';
+  document.getElementById('keyEvents').value = data?.keyEvents || '';
+  document.getElementById('issues').value    = data?.issues    || '';
+  document.getElementById('actions').value   = data?.actions   || '';
+  document.getElementById('followup').value  = data?.followup  || '';
+
+  if (data?.stations?.length) {
+    stations = data.stations;
+    stationCounts = data.stationCounts || { UMI: 0, UR: 0 };
+    stations.forEach(s => {
+      if (s.type === 'UMI') {
+        const n = parseInt(s.id.replace('umi-', '')) || 0;
+        stationCounts.UMI = Math.max(stationCounts.UMI, n);
+      } else {
+        const n = parseInt(s.id.replace('ur-', '')) || 0;
+        stationCounts.UR = Math.max(stationCounts.UR, n);
+      }
+    });
+  } else {
+    stations = [
+      { id: 'umi-1', type: 'UMI', label: 'UMI Station 1' },
+      { id: 'umi-2', type: 'UMI', label: 'UMI Station 2' },
+    ];
+    stationCounts = { UMI: 2, UR: 0 };
+  }
+
+  stationRows   = data?.stationRows   || {};
+  personExtras  = data?.personExtras  || {};
+  stations.forEach(s => ensureRows(s.id, s.type));
+
+  currentDate = date;
+  isSwitchingDate = false;
+
+  renderStations();
+  renderPersonSummary();
+  renderAnalysis();
+  generatePreview();
+}
+
+// ---- Preview ----
+
+function formatDate(val) {
+  if (!val) return '';
+  const [y, m, d] = val.split('-');
+  return `${m}.${d}.${y}`;
+}
+
+function generatePreview() {
+  syncStationInputs();
+  const date  = formatDate(document.getElementById('reportDate').value) || '—';
+  const shift = document.getElementById('shift').value;
+  const names = collectUniqueNames();
+
+  const lines = [];
+  lines.push(`# ${date}`);
+  lines.push(`Shift: ${shift}`);
+  lines.push('');
+  lines.push('Operator Summary');
+
+  names.forEach(name => {
+    const agg    = aggregateForPerson(name);
+    const extras = personExtras[name] || {};
+    lines.push(`- ${name}`);
+
+    ['GELLO', 'UMI', 'INFERENCE'].forEach(type => {
+      const a = agg[type];
+      if (!a || a._count === 0) return;
+      if (type === 'GELLO') {
+        const sessions = fmt(a.sessions || 0) !== '0' ? fmt(a.sessions) : '—';
+        const avg      = a.avgTime > 0 ? fmt(a.avgTime) : '—';
+        const total    = a.totalTime > 0 ? fmt(a.totalTime) : '—';
+        lines.push(`  - GELLO (Sessions/Avg sec/Total min): ${sessions}/${avg}/${total}`);
+      } else {
+        lines.push(`  - ${STATION_TYPES[type].label}: ${a.count > 0 ? fmt(a.count) : '—'}`);
+      }
+    });
+
+    lines.push(`  - Performance: ${extras.perf || 'Good'}`);
+    lines.push(`  - Notes:${extras.notes ? ' ' + extras.notes : ''}`);
+  });
+
+  lines.push('');
+  lines.push('What happened today');
+
+  const keyEvents = document.getElementById('keyEvents').value.trim();
+  const issues    = document.getElementById('issues').value.trim();
+  const actions   = document.getElementById('actions').value.trim();
+  const followup  = document.getElementById('followup').value.trim();
+
+  lines.push(`- Key events:${keyEvents ? ' ' + keyEvents : ''}`);
+  lines.push(`- Issues or delays:${issues ? ' ' + issues : ''}`);
+  lines.push(`- Actions taken:${actions ? ' ' + actions : ''}`);
+  lines.push(`- Follow-up needed:${followup ? ' ' + followup : ''}`);
+
+  const text = lines.join('\n');
+  document.getElementById('preview').textContent = text;
+  return text;
+}
+
+function copyToClipboard() {
+  const text = generatePreview();
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy to Clipboard'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ---- Event Listeners ----
+
+document.addEventListener('input', e => {
+  if (isSwitchingDate) return;
+  if (e.target.classList.contains('station-input')) {
+    const { station, row, field } = e.target.dataset;
+    const idx = parseInt(row);
+    if (stationRows[station] && stationRows[station][idx] !== undefined) {
+      stationRows[station][idx][field] = e.target.value;
+    }
+    renderPersonSummary();
+    renderAnalysis();
+  }
+  saveCurrentDate();
+});
+
+document.addEventListener('change', e => {
+  if (e.target.id === 'reportDate') {
+    saveCurrentDate();
+    loadDate(e.target.value);
+  } else if (!isSwitchingDate) {
+    saveCurrentDate();
+  }
+});
+
+// ---- Init ----
+
+const today = new Date();
+const pad = n => String(n).padStart(2, '0');
+const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+document.getElementById('reportDate').value = todayStr;
+loadDate(todayStr);
 </script>
 </body>
 </html>
