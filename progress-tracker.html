@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Progress Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --surface-sub: #faf9f7;
+    --border: #e8e3db;
+    --border-mid: #d6d0c6;
+    --text: #1a1714;
+    --text-2: #5c5652;
+    --text-3: #9c9590;
+    --accent: #c2820c;
+    --accent-h: #a36c09;
+    --accent-bg: #fef3c7;
+    --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.05);
+    --radius: 12px;
+    --radius-sm: 7px;
+    --umi: #3b82f6;
+    --gello: #8b5cf6;
+    --inference: #10b981;
+    --total-bg: #f0f9ff;
+    --total-border: #bae6fd;
+    --grand-bg: #fef3c7;
+    --grand-border: #fcd34d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 28px 20px 56px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .page-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+  h1 { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .card-header { display: flex; align-items: center; gap: 8px; }
+  .card-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .card-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.07em; color: var(--text-3);
+  }
+
+  .row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field-label { font-size: 12px; font-weight: 600; color: var(--text-2); letter-spacing: 0.01em; }
+
+  input[type="date"],
+  select {
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--surface-sub);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 11px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  input[type="date"]:focus, select:focus {
+    border-color: var(--accent);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(194,130,12,0.12);
+  }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239c9590' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+    padding-right: 28px; cursor: pointer; width: 148px;
+  }
+
+  .btn {
+    font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    border-radius: var(--radius-sm); padding: 8px 16px; border: none;
+    transition: background .15s, box-shadow .15s, transform .1s;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 1px 3px rgba(194,130,12,0.3); }
+  .btn-primary:hover { background: var(--accent-h); }
+  .btn-secondary { background: var(--surface); border: 1px solid var(--border-mid); color: var(--text-2); font-size: 12px; padding: 5px 11px; }
+  .btn-secondary:hover { background: var(--bg); border-color: var(--accent); color: var(--accent); }
+
+  /* Operator filter chips */
+  .operator-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .op-chip {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 20px;
+    border: 1.5px solid var(--border-mid); cursor: pointer;
+    font-size: 13px; font-weight: 500; color: var(--text-2);
+    background: var(--surface-sub); user-select: none;
+    transition: all .15s;
+  }
+  .op-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .op-chip.selected {
+    background: var(--accent-bg); border-color: var(--accent);
+    color: var(--accent); font-weight: 600;
+  }
+  .op-chip-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--border-mid); flex-shrink: 0; transition: background .15s;
+  }
+  .op-chip.selected .op-chip-dot { background: var(--accent); }
+  .chip-actions { display: flex; gap: 6px; align-items: center; }
+
+  /* Summary tiles */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+  }
+  .summary-tile {
+    background: var(--surface-sub);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .summary-tile-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.07em; color: var(--text-3);
+  }
+  .summary-tile-value {
+    font-size: 26px; font-weight: 700; color: var(--text);
+    letter-spacing: -0.5px; line-height: 1.1;
+  }
+  .summary-tile-unit { font-size: 11px; color: var(--text-3); font-weight: 500; }
+  .summary-tile.gello-tile { border-color: #ddd6fe; }
+  .summary-tile.gello-tile .summary-tile-label { color: var(--gello); }
+  .summary-tile.gello-tile .summary-tile-value { color: var(--gello); }
+  .summary-tile.umi-tile { border-color: #bfdbfe; }
+  .summary-tile.umi-tile .summary-tile-label { color: var(--umi); }
+  .summary-tile.umi-tile .summary-tile-value { color: var(--umi); }
+  .summary-tile.inference-tile { border-color: #a7f3d0; }
+  .summary-tile.inference-tile .summary-tile-label { color: var(--inference); }
+  .summary-tile.inference-tile .summary-tile-value { color: var(--inference); }
+
+  /* Per-operator summary section */
+  .operator-summary-grid {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .op-summary-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--surface-sub);
+    flex-wrap: wrap;
+  }
+  .op-summary-name {
+    font-size: 14px; font-weight: 700; color: var(--text);
+    min-width: 100px;
+  }
+  .op-summary-stats { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
+  .op-stat-chip {
+    display: flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 6px;
+    background: var(--surface); border: 1px solid var(--border);
+    font-size: 12.5px;
+  }
+  .op-stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .op-stat-value { color: var(--text-2); font-weight: 500; }
+
+  /* Detail table */
+  .detail-table-wrap { overflow-x: auto; }
+  .detail-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+  }
+  .detail-table th {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--text-3);
+    padding: 8px 12px; text-align: left;
+    border-bottom: 2px solid var(--border); white-space: nowrap;
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 1;
+  }
+  .detail-table td {
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .detail-table tr:last-child td { border-bottom: none; }
+
+  .date-group-header td {
+    background: var(--bg); font-weight: 700; font-size: 12px;
+    color: var(--text-2); padding: 10px 12px 6px;
+    letter-spacing: 0.01em;
+  }
+  .date-group-header td:first-child { border-radius: 6px 0 0 0; }
+
+  .operator-row td { background: var(--surface); }
+  .operator-row:hover td { background: #faf8f5; }
+
+  .subtotal-row td {
+    background: var(--total-bg); border-top: 1px solid var(--total-border);
+    border-bottom: 2px solid var(--total-border); font-weight: 600;
+    color: #0369a1; font-size: 12px;
+  }
+
+  .grand-total-row td {
+    background: var(--grand-bg); border-top: 2px solid var(--grand-border);
+    font-weight: 700; color: var(--accent);
+  }
+
+  .metric-gello { color: var(--gello); font-weight: 600; }
+  .metric-umi   { color: var(--umi);   font-weight: 600; }
+  .metric-muted { color: var(--text-3); }
+
+  .shift-badge {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    padding: 2px 7px; border-radius: 4px; text-transform: uppercase;
+    letter-spacing: 0.06em; margin-left: 6px;
+  }
+  .shift-morning  { background: #fef3c7; color: #92400e; }
+  .shift-afternoon { background: #dbeafe; color: #1e40af; }
+  .shift-night    { background: #ede9fe; color: #4c1d95; }
+
+  .empty-state { font-size: 13px; color: var(--text-3); text-align: center; padding: 32px 20px; }
+
+  .no-data { display: none; }
+  .section-divider {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--text-3); padding-bottom: 6px;
+    border-bottom: 1px solid var(--border); margin-bottom: 2px;
+  }
+
+  /* Charts */
+  .chart-full { position: relative; height: 240px; width: 100%; }
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .chart-half { position: relative; height: 220px; width: 100%; }
+  @media (max-width: 640px) {
+    .charts-row { grid-template-columns: 1fr; }
+    .chart-half { height: 200px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="page-header"><h1>Progress Tracker</h1></div>
+
+  <!-- Controls -->
+  <div class="card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-title">Date Range</div></div>
+    <div class="row">
+      <div class="field">
+        <div class="field-label">From</div>
+        <input type="date" id="fromDate" />
+      </div>
+      <div class="field">
+        <div class="field-label">To</div>
+        <input type="date" id="toDate" />
+      </div>
+      <div class="field">
+        <div class="field-label">Shift</div>
+        <select id="shiftFilter">
+          <option value="">All Shifts</option>
+          <option value="Morning">Morning</option>
+          <option value="Afternoon">Afternoon</option>
+          <option value="Night">Night</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="field-label">&nbsp;</div>
+        <button class="btn btn-primary" onclick="loadData()">Load Data</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Operator Filter -->
+  <div class="card no-data" id="operator-filter-card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-title">Filter Operators</div></div>
+    <div class="chip-actions">
+      <button class="btn btn-secondary" onclick="selectAll()">Select All</button>
+      <button class="btn btn-secondary" onclick="selectNone()">Clear</button>
+    </div>
+    <div class="operator-chips" id="operator-chips"></div>
+  </div>
+
+  <!-- Team Summary -->
+  <div class="card no-data" id="summary-card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-title">Team Summary</div></div>
+    <div class="summary-grid" id="team-summary-grid"></div>
+  </div>
+
+  <!-- Charts: Daily Output -->
+  <div class="card no-data" id="chart-daily-card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-title">Daily Output — Team</div></div>
+    <div class="chart-full"><canvas id="chart-daily"></canvas></div>
+  </div>
+
+  <!-- Charts: Operator Trends -->
+  <div class="card no-data" id="chart-trends-card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-title">Operator Trends</div></div>
+    <div class="charts-row">
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--gello);margin-bottom:8px">GELLO Sessions</div>
+        <div class="chart-half"><canvas id="chart-gello"></canvas></div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--umi);margin-bottom:8px">UMI Sessions</div>
+        <div class="chart-half"><canvas id="chart-umi"></canvas></div>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--inference);margin-bottom:8px;margin-top:12px">Inference Sessions</div>
+    <div class="chart-full"><canvas id="chart-inference"></canvas></div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:8px;margin-top:12px">Avg Time per Session (sec)</div>
+    <div class="chart-full"><canvas id="chart-avg"></canvas></div>
+  </div>
+
+  <!-- Per-Operator Summary -->
+  <div class="card no-data" id="per-op-card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-title">Per Operator (Totals)</div></div>
+    <div class="operator-summary-grid" id="per-op-grid"></div>
+  </div>
+
+  <!-- Day-by-Day Detail -->
+  <div class="card no-data" id="detail-card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-title">Day-by-Day Breakdown</div></div>
+    <div class="detail-table-wrap">
+      <table class="detail-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Operator</th>
+            <th style="color:var(--gello)">GELLO Sessions</th>
+            <th style="color:var(--umi)">UMI Sessions</th>
+            <th style="color:var(--inference)">Inference</th>
+            <th>Avg Time (sec)</th>
+            <th>Total Time (min)</th>
+          </tr>
+        </thead>
+        <tbody id="detail-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- Helpers ----
+
+function fmt(n, decimals = 1) {
+  if (n == null || n === '') return '—';
+  const v = parseFloat(n);
+  if (isNaN(v)) return '—';
+  if (v === 0) return '0';
+  return parseFloat(v.toFixed(decimals)).toString();
+}
+
+function formatDate(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  const dt = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+  return dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function shiftBadge(shift) {
+  if (!shift) return '';
+  const cls = { Morning: 'shift-morning', Afternoon: 'shift-afternoon', Night: 'shift-night' }[shift] || '';
+  return `<span class="shift-badge ${cls}">${shift}</span>`;
+}
+
+// ---- Data extraction from localStorage ----
+
+function getAllDates() {
+  const dates = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('shift-report:')) {
+      dates.push(key.replace('shift-report:', ''));
+    }
+  }
+  return dates.sort();
+}
+
+function parseShiftData(dateStr) {
+  const raw = localStorage.getItem(`shift-report:${dateStr}`);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+// Returns { [operatorName]: { gelloSessions, umiCount, totalTimeMin, avgTimeSec } }
+function extractOperatorStats(data) {
+  if (!data || !data.stations) return {};
+  const stats = {};
+
+  function ensure(name) {
+    if (!stats[name]) stats[name] = { gelloSessions: 0, umiCount: 0, inferenceCount: 0, totalTimeMin: 0, avgTimeSec: null };
+  }
+
+  data.stations.forEach(station => {
+    const rows = (data.stationRows || {})[station.id] || [];
+    rows.forEach(row => {
+      const name = (row.name || '').trim();
+      if (!name) return;
+      ensure(name);
+
+      if (station.type === 'GELLO') {
+        const sessions = parseFloat(row.sessions) || 0;
+        const totalTime = parseFloat(row.totalTime) || 0;
+        stats[name].gelloSessions += sessions;
+        stats[name].totalTimeMin += totalTime;
+      } else if (station.type === 'UMI') {
+        const count = parseFloat(row.count) || 0;
+        stats[name].umiCount += count;
+      } else if (station.type === 'INFERENCE') {
+        const count = parseFloat(row.count) || 0;
+        stats[name].inferenceCount += count;
+      }
+    });
+  });
+
+  // Compute avgTimeSec from totals
+  Object.values(stats).forEach(s => {
+    if (s.gelloSessions > 0 && s.totalTimeMin > 0) {
+      s.avgTimeSec = parseFloat(((s.totalTimeMin * 60) / s.gelloSessions).toFixed(1));
+    }
+  });
+
+  return stats;
+}
+
+// ---- State ----
+
+let loadedDays = [];     // [{ date, shift, operatorStats }]
+let allOperators = [];   // sorted list of all operator names
+let selectedOps = new Set();
+
+// ---- Load ----
+
+function loadData() {
+  const from = document.getElementById('fromDate').value;
+  const to   = document.getElementById('toDate').value;
+  const shiftFilter = document.getElementById('shiftFilter').value;
+
+  const allDates = getAllDates();
+  const filtered = allDates.filter(d => {
+    if (from && d < from) return false;
+    if (to && d > to) return false;
+    return true;
+  });
+
+  loadedDays = [];
+  const opSet = new Set();
+
+  filtered.forEach(date => {
+    const data = parseShiftData(date);
+    if (!data) return;
+    if (shiftFilter && data.shift !== shiftFilter) return;
+
+    const operatorStats = extractOperatorStats(data);
+    Object.keys(operatorStats).forEach(n => opSet.add(n));
+    loadedDays.push({ date, shift: data.shift || '', operatorStats });
+  });
+
+  allOperators = Array.from(opSet).sort();
+  selectedOps = new Set(allOperators);
+
+  if (loadedDays.length === 0) {
+    hideAll();
+    alert('No shift report data found for the selected range.');
+    return;
+  }
+
+  showAll();
+  renderOperatorFilter();
+  renderAll();
+}
+
+function hideAll() {
+  document.querySelectorAll('.no-data').forEach(el => el.style.display = 'none');
+}
+
+function showAll() {
+  document.querySelectorAll('.no-data').forEach(el => el.style.display = 'flex');
+}
+
+// ---- Operator filter ----
+
+function renderOperatorFilter() {
+  const container = document.getElementById('operator-chips');
+  container.innerHTML = '';
+  allOperators.forEach(name => {
+    const chip = document.createElement('div');
+    chip.className = 'op-chip' + (selectedOps.has(name) ? ' selected' : '');
+    chip.innerHTML = `<span class="op-chip-dot"></span>${name}`;
+    chip.onclick = () => toggleOperator(name, chip);
+    container.appendChild(chip);
+  });
+}
+
+function toggleOperator(name, chip) {
+  if (selectedOps.has(name)) {
+    selectedOps.delete(name);
+    chip.classList.remove('selected');
+  } else {
+    selectedOps.add(name);
+    chip.classList.add('selected');
+  }
+  renderAll();
+}
+
+function selectAll() {
+  selectedOps = new Set(allOperators);
+  renderOperatorFilter();
+  renderAll();
+}
+
+function selectNone() {
+  selectedOps = new Set();
+  renderOperatorFilter();
+  renderAll();
+}
+
+// ---- Aggregation ----
+
+function aggregateTeam() {
+  const totals = { gelloSessions: 0, umiCount: 0, inferenceCount: 0, totalTimeMin: 0, avgTimeSec: null };
+  loadedDays.forEach(({ operatorStats }) => {
+    Object.entries(operatorStats).forEach(([name, s]) => {
+      if (!selectedOps.has(name)) return;
+      totals.gelloSessions += s.gelloSessions;
+      totals.umiCount += s.umiCount;
+      totals.inferenceCount += s.inferenceCount;
+      totals.totalTimeMin += s.totalTimeMin;
+    });
+  });
+  if (totals.gelloSessions > 0 && totals.totalTimeMin > 0) {
+    totals.avgTimeSec = parseFloat(((totals.totalTimeMin * 60) / totals.gelloSessions).toFixed(1));
+  }
+  return totals;
+}
+
+function aggregatePerOperator() {
+  const map = {};
+  allOperators.forEach(name => {
+    if (!selectedOps.has(name)) return;
+    map[name] = { gelloSessions: 0, umiCount: 0, inferenceCount: 0, totalTimeMin: 0, days: 0 };
+  });
+
+  loadedDays.forEach(({ operatorStats }) => {
+    Object.entries(operatorStats).forEach(([name, s]) => {
+      if (!map[name]) return;
+      map[name].gelloSessions += s.gelloSessions;
+      map[name].umiCount += s.umiCount;
+      map[name].inferenceCount += s.inferenceCount;
+      map[name].totalTimeMin += s.totalTimeMin;
+      if (s.gelloSessions > 0 || s.umiCount > 0 || s.inferenceCount > 0) map[name].days++;
+    });
+  });
+
+  Object.values(map).forEach(s => {
+    if (s.gelloSessions > 0 && s.totalTimeMin > 0) {
+      s.avgTimeSec = parseFloat(((s.totalTimeMin * 60) / s.gelloSessions).toFixed(1));
+    } else {
+      s.avgTimeSec = null;
+    }
+  });
+
+  return map;
+}
+
+// ---- Charts ----
+
+const OP_PALETTE = [
+  '#f59e0b', '#ec4899', '#10b981', '#f97316',
+  '#06b6d4', '#84cc16', '#e11d48', '#6366f1',
+  '#a855f7', '#14b8a6',
+];
+
+let chartInstances = {};
+
+function opColor(name) {
+  const idx = allOperators.indexOf(name);
+  return OP_PALETTE[idx % OP_PALETTE.length];
+}
+
+function shortDate(iso) {
+  const [y, m, d] = iso.split('-');
+  const dt = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+  return dt.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' });
+}
+
+function destroyChart(id) {
+  if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+
+function baseLineOptions(yLabel) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 }, padding: 12 } },
+      tooltip: { backgroundColor: '#1a1714', titleFont: { size: 11 }, bodyFont: { size: 11 }, padding: 10 },
+    },
+    scales: {
+      x: { grid: { color: '#f0ede8' }, ticks: { font: { size: 10 }, color: '#9c9590' } },
+      y: { beginAtZero: true, grid: { color: '#f0ede8' }, ticks: { font: { size: 10 }, color: '#9c9590' },
+           title: { display: !!yLabel, text: yLabel, font: { size: 10 }, color: '#9c9590' } },
+    },
+  };
+}
+
+function renderCharts() {
+  const dates = loadedDays.map(d => d.date);
+  const labels = dates.map(shortDate);
+  const activeOps = allOperators.filter(n => selectedOps.has(n));
+
+  // --- Daily stacked bar ---
+  destroyChart('daily');
+  const dailyGello = dates.map(date => {
+    const day = loadedDays.find(d => d.date === date);
+    return Object.entries(day.operatorStats)
+      .filter(([n]) => selectedOps.has(n))
+      .reduce((s, [, v]) => s + v.gelloSessions, 0);
+  });
+  const dailyUMI = dates.map(date => {
+    const day = loadedDays.find(d => d.date === date);
+    return Object.entries(day.operatorStats)
+      .filter(([n]) => selectedOps.has(n))
+      .reduce((s, [, v]) => s + v.umiCount, 0);
+  });
+  const dailyInference = dates.map(date => {
+    const day = loadedDays.find(d => d.date === date);
+    return Object.entries(day.operatorStats)
+      .filter(([n]) => selectedOps.has(n))
+      .reduce((s, [, v]) => s + v.inferenceCount, 0);
+  });
+  chartInstances['daily'] = new Chart(document.getElementById('chart-daily'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'GELLO Sessions',     data: dailyGello,     backgroundColor: 'rgba(139,92,246,0.8)', borderRadius: 4, stack: 'sessions' },
+        { label: 'UMI Sessions',       data: dailyUMI,       backgroundColor: 'rgba(59,130,246,0.8)', borderRadius: 4, stack: 'sessions' },
+        { label: 'Inference Sessions', data: dailyInference, backgroundColor: 'rgba(16,185,129,0.8)', borderRadius: 4, stack: 'sessions' },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 }, padding: 12 } },
+        tooltip: { backgroundColor: '#1a1714', titleFont: { size: 11 }, bodyFont: { size: 11 }, padding: 10 },
+      },
+      scales: {
+        x: { stacked: true, grid: { color: '#f0ede8' }, ticks: { font: { size: 10 }, color: '#9c9590' } },
+        y: { stacked: true, beginAtZero: true, grid: { color: '#f0ede8' }, ticks: { font: { size: 10 }, color: '#9c9590' } },
+      },
+    },
+  });
+
+  // --- GELLO per operator line ---
+  destroyChart('gello');
+  chartInstances['gello'] = new Chart(document.getElementById('chart-gello'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: activeOps.map(name => ({
+        label: name,
+        data: dates.map(date => {
+          const day = loadedDays.find(d => d.date === date);
+          return day.operatorStats[name]?.gelloSessions || null;
+        }),
+        borderColor: opColor(name),
+        backgroundColor: opColor(name) + '22',
+        tension: 0.3, pointRadius: 4, pointHoverRadius: 6,
+        borderWidth: 2, fill: false, spanGaps: true,
+      })),
+    },
+    options: baseLineOptions(''),
+  });
+
+  // --- UMI per operator line ---
+  destroyChart('umi');
+  chartInstances['umi'] = new Chart(document.getElementById('chart-umi'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: activeOps.map(name => ({
+        label: name,
+        data: dates.map(date => {
+          const day = loadedDays.find(d => d.date === date);
+          return day.operatorStats[name]?.umiCount || null;
+        }),
+        borderColor: opColor(name),
+        backgroundColor: opColor(name) + '22',
+        tension: 0.3, pointRadius: 4, pointHoverRadius: 6,
+        borderWidth: 2, fill: false, spanGaps: true,
+      })),
+    },
+    options: baseLineOptions(''),
+  });
+
+  // --- Inference per operator line ---
+  destroyChart('inference');
+  chartInstances['inference'] = new Chart(document.getElementById('chart-inference'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: activeOps.map(name => ({
+        label: name,
+        data: dates.map(date => {
+          const day = loadedDays.find(d => d.date === date);
+          return day.operatorStats[name]?.inferenceCount || null;
+        }),
+        borderColor: opColor(name),
+        backgroundColor: opColor(name) + '22',
+        tension: 0.3, pointRadius: 4, pointHoverRadius: 6,
+        borderWidth: 2, fill: false, spanGaps: true,
+      })),
+    },
+    options: baseLineOptions(''),
+  });
+
+  // --- Avg time per operator line ---
+  destroyChart('avg');
+  chartInstances['avg'] = new Chart(document.getElementById('chart-avg'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: activeOps.map(name => ({
+        label: name,
+        data: dates.map(date => {
+          const day = loadedDays.find(d => d.date === date);
+          const s = day.operatorStats[name];
+          if (!s || s.gelloSessions === 0 || s.totalTimeMin === 0) return null;
+          return parseFloat(((s.totalTimeMin * 60) / s.gelloSessions).toFixed(1));
+        }),
+        borderColor: opColor(name),
+        backgroundColor: opColor(name) + '22',
+        tension: 0.3, pointRadius: 4, pointHoverRadius: 6,
+        borderWidth: 2, fill: false, spanGaps: true,
+      })),
+    },
+    options: baseLineOptions('sec'),
+  });
+}
+
+// ---- Render ----
+
+function renderAll() {
+  renderTeamSummary();
+  renderCharts();
+  renderPerOperator();
+  renderDetail();
+}
+
+function renderTeamSummary() {
+  const t = aggregateTeam();
+  const days = loadedDays.length;
+  const grid = document.getElementById('team-summary-grid');
+  grid.innerHTML = '';
+
+  const tiles = [
+    { label: 'Days Tracked',     value: fmt(days, 0),                                       unit: 'days',             cls: '' },
+    { label: 'GELLO Sessions',   value: fmt(t.gelloSessions, 0),                             unit: 'total sessions',   cls: 'gello-tile' },
+    { label: 'UMI Sessions',     value: fmt(t.umiCount, 0),                                  unit: 'total sessions',   cls: 'umi-tile' },
+    { label: 'Inference',        value: fmt(t.inferenceCount, 0),                             unit: 'total sessions',   cls: 'inference-tile' },
+    { label: 'Total Time',       value: fmt(t.totalTimeMin, 1),                               unit: 'minutes',          cls: '' },
+    { label: 'Avg Time',         value: t.avgTimeSec != null ? fmt(t.avgTimeSec, 1) : '—',   unit: 'sec / GELLO session', cls: '' },
+    { label: 'GELLO / Day',      value: days > 0 ? fmt(t.gelloSessions / days, 1) : '—',     unit: 'avg sessions',     cls: 'gello-tile' },
+    { label: 'UMI / Day',        value: days > 0 ? fmt(t.umiCount / days, 1) : '—',          unit: 'avg sessions',     cls: 'umi-tile' },
+    { label: 'Inference / Day',  value: days > 0 ? fmt(t.inferenceCount / days, 1) : '—',    unit: 'avg sessions',     cls: 'inference-tile' },
+  ];
+
+  tiles.forEach(({ label, value, unit, cls }) => {
+    const tile = document.createElement('div');
+    tile.className = `summary-tile ${cls}`;
+    tile.innerHTML = `
+      <div class="summary-tile-label">${label}</div>
+      <div class="summary-tile-value">${value}</div>
+      <div class="summary-tile-unit">${unit}</div>`;
+    grid.appendChild(tile);
+  });
+}
+
+function renderPerOperator() {
+  const map = aggregatePerOperator();
+  const grid = document.getElementById('per-op-grid');
+  grid.innerHTML = '';
+
+  const names = Object.keys(map);
+  if (names.length === 0) {
+    grid.innerHTML = '<div class="empty-state">No operators selected.</div>';
+    return;
+  }
+
+  names.forEach(name => {
+    const s = map[name];
+    const row = document.createElement('div');
+    row.className = 'op-summary-row';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'op-summary-name';
+    nameEl.textContent = name;
+    row.appendChild(nameEl);
+
+    const statsEl = document.createElement('div');
+    statsEl.className = 'op-summary-stats';
+
+    const chips = [
+      { label: 'GELLO',      value: fmt(s.gelloSessions, 0),                                       color: 'var(--gello)' },
+      { label: 'UMI',        value: fmt(s.umiCount, 0),                                             color: 'var(--umi)' },
+      { label: 'Inference',  value: fmt(s.inferenceCount, 0),                                        color: 'var(--inference)' },
+      { label: 'Avg Time',   value: s.avgTimeSec != null ? `${fmt(s.avgTimeSec, 1)} sec` : '—',    color: 'var(--text-3)' },
+      { label: 'Total Time', value: `${fmt(s.totalTimeMin, 1)} min`,                                color: 'var(--text-3)' },
+      { label: 'Days',       value: `${s.days}`,                                                     color: 'var(--text-3)' },
+    ];
+
+    chips.forEach(({ label, value, color }) => {
+      const chip = document.createElement('div');
+      chip.className = 'op-stat-chip';
+      chip.innerHTML = `<span class="op-stat-label" style="color:${color}">${label}</span><span class="op-stat-value">${value}</span>`;
+      statsEl.appendChild(chip);
+    });
+
+    row.appendChild(statsEl);
+    grid.appendChild(row);
+  });
+}
+
+function renderDetail() {
+  const tbody = document.getElementById('detail-tbody');
+  tbody.innerHTML = '';
+
+  const grandTotals = { gelloSessions: 0, umiCount: 0, inferenceCount: 0, totalTimeMin: 0 };
+
+  loadedDays.forEach(({ date, shift, operatorStats }) => {
+    const dayOps = Object.entries(operatorStats).filter(([n]) => selectedOps.has(n));
+    if (dayOps.length === 0) return;
+
+    const dayTotals = { gelloSessions: 0, umiCount: 0, inferenceCount: 0, totalTimeMin: 0 };
+
+    // Date group header
+    const headerRow = document.createElement('tr');
+    headerRow.className = 'date-group-header';
+    const headerCell = document.createElement('td');
+    headerCell.colSpan = 7;
+    headerCell.innerHTML = `${formatDate(date)}${shiftBadge(shift)}`;
+    headerRow.appendChild(headerCell);
+    tbody.appendChild(headerRow);
+
+    // Operator rows
+    dayOps.forEach(([name, s]) => {
+      const tr = document.createElement('tr');
+      tr.className = 'operator-row';
+
+      const avgSec = s.gelloSessions > 0 && s.totalTimeMin > 0
+        ? fmt((s.totalTimeMin * 60) / s.gelloSessions, 1) : '—';
+
+      tr.innerHTML = `
+        <td></td>
+        <td style="font-weight:600">${name}</td>
+        <td class="${s.gelloSessions > 0 ? 'metric-gello' : 'metric-muted'}">${s.gelloSessions > 0 ? fmt(s.gelloSessions, 0) : '—'}</td>
+        <td class="${s.umiCount > 0 ? 'metric-umi' : 'metric-muted'}">${s.umiCount > 0 ? fmt(s.umiCount, 0) : '—'}</td>
+        <td style="${s.inferenceCount > 0 ? 'color:var(--inference);font-weight:600' : 'color:var(--text-3)'}">${s.inferenceCount > 0 ? fmt(s.inferenceCount, 0) : '—'}</td>
+        <td>${avgSec}</td>
+        <td>${s.totalTimeMin > 0 ? fmt(s.totalTimeMin, 1) : '—'}</td>
+      `;
+      tbody.appendChild(tr);
+
+      dayTotals.gelloSessions += s.gelloSessions;
+      dayTotals.umiCount += s.umiCount;
+      dayTotals.inferenceCount += s.inferenceCount;
+      dayTotals.totalTimeMin += s.totalTimeMin;
+    });
+
+    const dayAvgSec = dayTotals.gelloSessions > 0 && dayTotals.totalTimeMin > 0
+      ? fmt((dayTotals.totalTimeMin * 60) / dayTotals.gelloSessions, 1) : '—';
+
+    // Day subtotal row
+    const subRow = document.createElement('tr');
+    subRow.className = 'subtotal-row';
+    subRow.innerHTML = `
+      <td></td>
+      <td>Day Total</td>
+      <td>${dayTotals.gelloSessions > 0 ? fmt(dayTotals.gelloSessions, 0) : '—'}</td>
+      <td>${dayTotals.umiCount > 0 ? fmt(dayTotals.umiCount, 0) : '—'}</td>
+      <td>${dayTotals.inferenceCount > 0 ? fmt(dayTotals.inferenceCount, 0) : '—'}</td>
+      <td>${dayAvgSec}</td>
+      <td>${dayTotals.totalTimeMin > 0 ? fmt(dayTotals.totalTimeMin, 1) : '—'}</td>
+    `;
+    tbody.appendChild(subRow);
+
+    grandTotals.gelloSessions += dayTotals.gelloSessions;
+    grandTotals.umiCount += dayTotals.umiCount;
+    grandTotals.inferenceCount += dayTotals.inferenceCount;
+    grandTotals.totalTimeMin += dayTotals.totalTimeMin;
+  });
+
+  // Grand total
+  const grandAvgSec = grandTotals.gelloSessions > 0 && grandTotals.totalTimeMin > 0
+    ? fmt((grandTotals.totalTimeMin * 60) / grandTotals.gelloSessions, 1) : '—';
+
+  const grandRow = document.createElement('tr');
+  grandRow.className = 'grand-total-row';
+  grandRow.innerHTML = `
+    <td></td>
+    <td>Grand Total</td>
+    <td>${grandTotals.gelloSessions > 0 ? fmt(grandTotals.gelloSessions, 0) : '—'}</td>
+    <td>${grandTotals.umiCount > 0 ? fmt(grandTotals.umiCount, 0) : '—'}</td>
+    <td>${grandTotals.inferenceCount > 0 ? fmt(grandTotals.inferenceCount, 0) : '—'}</td>
+    <td>${grandAvgSec}</td>
+    <td>${grandTotals.totalTimeMin > 0 ? fmt(grandTotals.totalTimeMin, 1) : '—'}</td>
+  `;
+  tbody.appendChild(grandRow);
+
+  if (tbody.children.length === 0) {
+    const emptyRow = document.createElement('tr');
+    emptyRow.innerHTML = '<td colspan="7" class="empty-state">No data to display.</td>';
+    tbody.appendChild(emptyRow);
+  }
+}
+
+// ---- Init ----
+
+const today = new Date();
+const pad = n => String(n).padStart(2, '0');
+const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+
+// Default to last 14 days
+const twoWeeksAgo = new Date(today);
+twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 13);
+const twoWeeksAgoStr = `${twoWeeksAgo.getFullYear()}-${pad(twoWeeksAgo.getMonth()+1)}-${pad(twoWeeksAgo.getDate())}`;
+
+document.getElementById('fromDate').value = twoWeeksAgoStr;
+document.getElementById('toDate').value = todayStr;
+</script>
+</body>
+</html>
