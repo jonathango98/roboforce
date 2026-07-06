@@ -442,16 +442,16 @@ function getOperatorShift(name) {
 
 const SHIFT_ORDER = { Morning: 0, Afternoon: 1, Night: 2 };
 
-// Reports are keyed shift-report:YYYY-MM-DD:Shift; legacy records
-// (shift-report:YYYY-MM-DD) carry their shift in the data instead.
+// Station mode reads only its own station-report:YYYY-MM-DD:Shift
+// namespace — main's shift-report:* records are left untouched.
 function getAllReports() {
   const reports = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (!key || !key.startsWith('shift-report:')) continue;
-    const m = key.slice('shift-report:'.length).match(/^(\d{4}-\d{2}-\d{2})(?::(.+))?$/);
+    if (!key || !key.startsWith('station-report:')) continue;
+    const m = key.slice('station-report:'.length).match(/^(\d{4}-\d{2}-\d{2}):(.+)$/);
     if (!m) continue;
-    reports.push({ date: m[1], shift: m[2] || null, key });
+    reports.push({ date: m[1], shift: m[2], key });
   }
   return reports;
 }

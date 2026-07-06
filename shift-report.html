@@ -813,23 +813,26 @@ function updatePersonExtra(name, field, value) {
 
 // ---- Persistence ----
 
-function storageKey(date, shift) { return `shift-report:${date}:${shift}`; }
+// Station mode keeps its records in a separate namespace so it never
+// touches main's shift-report:* data on the same browser.
+function storageKey(date, shift) { return `station-report:${date}:${shift}`; }
 
-// One-time migration: old records were keyed by date only, with the shift
-// stored inside. Re-key them as date:shift so each shift has its own record.
-function migrateLegacyRecords() {
-  const legacyKeys = [];
+// Repair for an earlier station-mode build that destructively re-keyed
+// main's records as shift-report:DATE:SHIFT — restore main's date-only
+// key and adopt a copy into the station namespace.
+function repairMigratedRecords() {
+  const migratedKeys = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && /^shift-report:\d{4}-\d{2}-\d{2}$/.test(key)) legacyKeys.push(key);
+    if (key && /^shift-report:\d{4}-\d{2}-\d{2}:.+$/.test(key)) migratedKeys.push(key);
   }
-  legacyKeys.forEach(key => {
-    try {
-      const data = JSON.parse(localStorage.getItem(key));
-      const newKey = `${key}:${data?.shift || 'Morning'}`;
-      if (!localStorage.getItem(newKey)) localStorage.setItem(newKey, JSON.stringify(data));
-      localStorage.removeItem(key);
-    } catch {}
+  migratedKeys.forEach(key => {
+    const val = localStorage.getItem(key);
+    const legacyKey = key.replace(/:[^:]+$/, '');
+    if (!localStorage.getItem(legacyKey)) localStorage.setItem(legacyKey, val);
+    const stationKey = key.replace(/^shift-report:/, 'station-report:');
+    if (!localStorage.getItem(stationKey)) localStorage.setItem(stationKey, val);
+    localStorage.removeItem(key);
   });
 }
 
@@ -1015,7 +1018,7 @@ const today = new Date();
 const pad = n => String(n).padStart(2, '0');
 const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
 document.getElementById('reportDate').value = todayStr;
-migrateLegacyRecords();
+repairMigratedRecords();
 loadReport(todayStr, document.getElementById('shift').value);
 </script>
 </body>

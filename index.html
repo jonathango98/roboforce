@@ -270,7 +270,7 @@
   function switchTab(i) {
     tabs.forEach((t, idx) => t.classList.toggle('active', idx === i));
     panes.forEach((p, idx) => p.classList.toggle('active', idx === i));
-    localStorage.setItem('rf-admin-tab', i);
+    localStorage.setItem('rf-station-tab', i);
     if (i === 1 && gate.style.display !== 'none') passwordInput.focus();
   }
 
@@ -321,7 +321,7 @@
 
   if (sessionStorage.getItem('rf-admin-unlocked') === '1') showAdmin();
 
-  const saved = parseInt(localStorage.getItem('rf-admin-tab') ?? '0', 10);
+  const saved = parseInt(localStorage.getItem('rf-station-tab') ?? '0', 10);
   switchTab(isNaN(saved) || saved >= tabs.length ? 0 : saved);
 </script>
 
