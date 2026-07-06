@@ -357,7 +357,10 @@
     <div class="card-header"><div class="card-dot"></div><div class="card-title">Preview</div></div>
     <div class="preview-box" id="preview">Generate preview below...</div>
     <div class="actions">
-      <button class="btn btn-primary" onclick="generatePreview()">Generate Preview</button>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button class="btn btn-primary" onclick="generatePreview()">Generate Preview</button>
+        <button class="btn btn-secondary" id="saveBtn" onclick="manualSave()">Save</button>
+      </div>
       <button class="btn btn-copy" id="copyBtn" onclick="copyToClipboard()">Copy to Clipboard</button>
     </div>
   </div>
@@ -367,7 +370,7 @@
 const STATION_TYPES = {
   UMI:       { label: 'UMI',       color: 'var(--umi)',       fields: ['count'] },
   GELLO:     { label: 'GELLO',     color: 'var(--gello)',     fields: ['sessions', 'avgTime', 'totalTime'] },
-  INFERENCE: { label: 'Inference', color: 'var(--inference)', fields: ['count'] },
+  INFERENCE: { label: 'Inference', color: 'var(--inference)', fields: ['count', 'avgTime', 'totalTime'] },
 };
 
 const FIELD_LABELS = {
@@ -383,6 +386,7 @@ let stationRows = {};    // { [stationId]: [{ name, ...fields }] }
 let personExtras = {};   // { [name]: { perf, notes } }
 let stationCounts = { UMI: 2, UR: 0 }; // UR shared between GELLO and INFERENCE
 let currentDate = '';
+let currentShift = '';
 let isSwitchingDate = false;
 
 // ---- Helpers ----
@@ -580,6 +584,11 @@ function aggregateForPerson(name) {
     agg.GELLO.avgTime = Math.round(agg.GELLO.totalTime * 60 / agg.GELLO.sessions);
   }
 
+  // Recompute Inference avg from totalTime if possible
+  if (agg.INFERENCE && agg.INFERENCE._count > 0 && agg.INFERENCE.count > 0 && agg.INFERENCE.totalTime > 0) {
+    agg.INFERENCE.avgTime = Math.round(agg.INFERENCE.totalTime * 60 / agg.INFERENCE.count);
+  }
+
   return agg;
 }
 
@@ -622,6 +631,11 @@ function buildPersonBlock(name) {
       const avg      = a.avgTime > 0 ? fmt(a.avgTime) : '—';
       const total    = a.totalTime > 0 ? fmt(a.totalTime) : '—';
       statStr = `${sessions} sessions / ${avg} avg sec / ${total} min`;
+    } else if (type === 'INFERENCE') {
+      const count = a.count > 0 ? fmt(a.count) : '—';
+      const avg   = a.avgTime > 0 ? fmt(a.avgTime) : '—';
+      const total = a.totalTime > 0 ? fmt(a.totalTime) : '—';
+      statStr = `${count} count / ${avg} avg sec / ${total} min`;
     } else {
       statStr = `${a.count > 0 ? fmt(a.count) : '—'}`;
     }
@@ -678,7 +692,7 @@ function buildPersonBlock(name) {
 
 function renderAnalysis() {
   let totalSessions = 0, totalUMI = 0, totalInference = 0;
-  let totalTimeMin = 0, totalTimeRows = 0;
+  let totalTimeMin = 0, timedTasks = 0;
 
   stations.forEach(s => {
     (stationRows[s.id] || []).forEach(row => {
@@ -687,20 +701,22 @@ function renderAnalysis() {
         const sessions = parseFloat(row.sessions);
         const time     = parseFloat(row.totalTime);
         if (!isNaN(sessions) && sessions > 0) totalSessions += sessions;
-        if (!isNaN(time)     && time > 0)     { totalTimeMin += time; totalTimeRows++; }
+        if (!isNaN(time) && time > 0) { totalTimeMin += time; if (!isNaN(sessions) && sessions > 0) timedTasks += sessions; }
       } else if (s.type === 'UMI') {
         const count = parseFloat(row.count);
         if (!isNaN(count) && count > 0) totalUMI += count;
       } else if (s.type === 'INFERENCE') {
         const count = parseFloat(row.count);
+        const time  = parseFloat(row.totalTime);
         if (!isNaN(count) && count > 0) totalInference += count;
+        if (!isNaN(time) && time > 0) { totalTimeMin += time; if (!isNaN(count) && count > 0) timedTasks += count; }
       }
     });
   });
 
   const totalTests  = totalSessions + totalUMI + totalInference;
-  const avgTimeSec  = (totalSessions > 0 && totalTimeMin > 0)
-    ? parseFloat((totalTimeMin * 60 / totalSessions).toFixed(2))
+  const avgTimeSec  = (timedTasks > 0 && totalTimeMin > 0)
+    ? parseFloat((totalTimeMin * 60 / timedTasks).toFixed(2))
     : null;
 
   const tiles = [
@@ -709,7 +725,7 @@ function renderAnalysis() {
     { label: 'UMI Count',         value: fmt(totalUMI) || '0',              unit: 'tasks' },
     { label: 'Inference Count',   value: fmt(totalInference) || '0',        unit: 'tasks' },
     { label: 'Total Time',        value: fmt(totalTimeMin) || '0',          unit: 'minutes' },
-    { label: 'Avg Time',          value: avgTimeSec != null ? fmt(avgTimeSec) : '—', unit: 'sec / session' },
+    { label: 'Avg Time',          value: avgTimeSec != null ? fmt(avgTimeSec) : '—', unit: 'sec / task' },
   ];
 
   const grid = document.getElementById('analysis-grid');
@@ -797,13 +813,31 @@ function updatePersonExtra(name, field, value) {
 
 // ---- Persistence ----
 
-function storageKey(date) { return `shift-report:${date}`; }
+function storageKey(date, shift) { return `shift-report:${date}:${shift}`; }
+
+// One-time migration: old records were keyed by date only, with the shift
+// stored inside. Re-key them as date:shift so each shift has its own record.
+function migrateLegacyRecords() {
+  const legacyKeys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && /^shift-report:\d{4}-\d{2}-\d{2}$/.test(key)) legacyKeys.push(key);
+  }
+  legacyKeys.forEach(key => {
+    try {
+      const data = JSON.parse(localStorage.getItem(key));
+      const newKey = `${key}:${data?.shift || 'Morning'}`;
+      if (!localStorage.getItem(newKey)) localStorage.setItem(newKey, JSON.stringify(data));
+      localStorage.removeItem(key);
+    } catch {}
+  });
+}
 
 function collectData() {
   syncStationInputs();
   return {
-    shift:        document.getElementById('shift').value,
-    stations:     stations.map(({ id, type, num }) => ({ id, type, num })),
+    shift:        currentShift,
+    stations:     stations.map(({ id, type, label }) => ({ id, type, label })),
     stationCounts,
     stationRows,
     personExtras,
@@ -815,16 +849,16 @@ function collectData() {
 }
 
 function saveCurrentDate() {
-  if (!currentDate || isSwitchingDate) return;
-  localStorage.setItem(storageKey(currentDate), JSON.stringify(collectData()));
+  if (!currentDate || !currentShift || isSwitchingDate) return;
+  localStorage.setItem(storageKey(currentDate, currentShift), JSON.stringify(collectData()));
 }
 
-function loadDate(date) {
+function loadReport(date, shift) {
   isSwitchingDate = true;
-  const raw = localStorage.getItem(storageKey(date));
+  const raw = localStorage.getItem(storageKey(date, shift));
   const data = raw ? JSON.parse(raw) : null;
 
-  document.getElementById('shift').value     = data?.shift     || 'Morning';
+  document.getElementById('shift').value     = shift;
   document.getElementById('keyEvents').value = data?.keyEvents || '';
   document.getElementById('issues').value    = data?.issues    || '';
   document.getElementById('actions').value   = data?.actions   || '';
@@ -855,12 +889,13 @@ function loadDate(date) {
   stations.forEach(s => ensureRows(s.id, s.type));
 
   currentDate = date;
+  currentShift = shift;
   isSwitchingDate = false;
 
   renderStations();
   renderPersonSummary();
   renderAnalysis();
-  generatePreview();
+  generatePreview(false);
 }
 
 // ---- Preview ----
@@ -871,7 +906,7 @@ function formatDate(val) {
   return `${m}.${d}.${y}`;
 }
 
-function generatePreview() {
+function generatePreview(save = true) {
   syncStationInputs();
   const date  = formatDate(document.getElementById('reportDate').value) || '—';
   const shift = document.getElementById('shift').value;
@@ -896,6 +931,11 @@ function generatePreview() {
         const avg      = a.avgTime > 0 ? fmt(a.avgTime) : '—';
         const total    = a.totalTime > 0 ? fmt(a.totalTime) : '—';
         lines.push(`  - GELLO (Sessions/Avg sec/Total min): ${sessions}/${avg}/${total}`);
+      } else if (type === 'INFERENCE') {
+        const count = a.count > 0 ? fmt(a.count) : '—';
+        const avg   = a.avgTime > 0 ? fmt(a.avgTime) : '—';
+        const total = a.totalTime > 0 ? fmt(a.totalTime) : '—';
+        lines.push(`  - Inference (Count/Avg sec/Total min): ${count}/${avg}/${total}`);
       } else {
         lines.push(`  - ${STATION_TYPES[type].label}: ${a.count > 0 ? fmt(a.count) : '—'}`);
       }
@@ -920,7 +960,15 @@ function generatePreview() {
 
   const text = lines.join('\n');
   document.getElementById('preview').textContent = text;
+  if (save) saveCurrentDate();
   return text;
+}
+
+function manualSave() {
+  saveCurrentDate();
+  const btn = document.getElementById('saveBtn');
+  btn.textContent = '✓ Saved';
+  setTimeout(() => { btn.textContent = 'Save'; }, 1500);
 }
 
 function copyToClipboard() {
@@ -952,7 +1000,10 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   if (e.target.id === 'reportDate') {
     saveCurrentDate();
-    loadDate(e.target.value);
+    loadReport(e.target.value, currentShift);
+  } else if (e.target.id === 'shift') {
+    saveCurrentDate();
+    loadReport(currentDate, e.target.value);
   } else if (!isSwitchingDate) {
     saveCurrentDate();
   }
@@ -964,7 +1015,8 @@ const today = new Date();
 const pad = n => String(n).padStart(2, '0');
 const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
 document.getElementById('reportDate').value = todayStr;
-loadDate(todayStr);
+migrateLegacyRecords();
+loadReport(todayStr, document.getElementById('shift').value);
 </script>
 </body>
 </html>
