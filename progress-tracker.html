@@ -688,22 +688,40 @@ function baseLineOptions(yLabel) {
   };
 }
 
+// Merge the per-report entries into one entry per calendar date, summing
+// each operator's stats across that date's shifts — charts plot by day.
+function aggregateByDate() {
+  const byDate = new Map();
+  loadedDays.forEach(({ date, operatorStats }) => {
+    if (!byDate.has(date)) byDate.set(date, { date, operatorStats: {} });
+    const target = byDate.get(date).operatorStats;
+    Object.entries(operatorStats).forEach(([name, s]) => {
+      if (!target[name]) target[name] = { gelloSessions: 0, umiCount: 0, inferenceCount: 0, totalTimeMin: 0 };
+      target[name].gelloSessions  += s.gelloSessions;
+      target[name].umiCount       += s.umiCount;
+      target[name].inferenceCount += s.inferenceCount;
+      target[name].totalTimeMin   += s.totalTimeMin;
+    });
+  });
+  return Array.from(byDate.values()).sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+
 function renderCharts() {
-  // One data point per report — same date can appear once per shift
-  const labels = loadedDays.map(d => shortDate(d.date) + (d.shift ? ` · ${d.shift.slice(0, 1)}` : ''));
+  const chartDays = aggregateByDate();
+  const labels = chartDays.map(d => shortDate(d.date));
   const activeOps = allOperators.filter(n => selectedOps.has(n));
 
   // --- Daily stacked bar ---
   destroyChart('daily');
-  const dailyGello = loadedDays.map(day =>
+  const dailyGello = chartDays.map(day =>
     Object.entries(day.operatorStats)
       .filter(([n]) => selectedOps.has(n))
       .reduce((s, [, v]) => s + v.gelloSessions, 0));
-  const dailyUMI = loadedDays.map(day =>
+  const dailyUMI = chartDays.map(day =>
     Object.entries(day.operatorStats)
       .filter(([n]) => selectedOps.has(n))
       .reduce((s, [, v]) => s + v.umiCount, 0));
-  const dailyInference = loadedDays.map(day =>
+  const dailyInference = chartDays.map(day =>
     Object.entries(day.operatorStats)
       .filter(([n]) => selectedOps.has(n))
       .reduce((s, [, v]) => s + v.inferenceCount, 0));
@@ -739,7 +757,7 @@ function renderCharts() {
       labels,
       datasets: activeOps.map(name => ({
         label: name,
-        data: loadedDays.map(day => day.operatorStats[name]?.gelloSessions || null),
+        data: chartDays.map(day => day.operatorStats[name]?.gelloSessions || null),
         borderColor: opColor(name),
         backgroundColor: opColor(name) + '22',
         tension: 0.3, pointRadius: 4, pointHoverRadius: 6,
@@ -757,7 +775,7 @@ function renderCharts() {
       labels,
       datasets: activeOps.map(name => ({
         label: name,
-        data: loadedDays.map(day => day.operatorStats[name]?.umiCount || null),
+        data: chartDays.map(day => day.operatorStats[name]?.umiCount || null),
         borderColor: opColor(name),
         backgroundColor: opColor(name) + '22',
         tension: 0.3, pointRadius: 4, pointHoverRadius: 6,
@@ -775,7 +793,7 @@ function renderCharts() {
       labels,
       datasets: activeOps.map(name => ({
         label: name,
-        data: loadedDays.map(day => day.operatorStats[name]?.inferenceCount || null),
+        data: chartDays.map(day => day.operatorStats[name]?.inferenceCount || null),
         borderColor: opColor(name),
         backgroundColor: opColor(name) + '22',
         tension: 0.3, pointRadius: 4, pointHoverRadius: 6,
@@ -793,7 +811,7 @@ function renderCharts() {
       labels,
       datasets: activeOps.map(name => ({
         label: name,
-        data: loadedDays.map(day => {
+        data: chartDays.map(day => {
           const s = day.operatorStats[name];
           if (!s || s.gelloSessions === 0 || s.totalTimeMin === 0) return null;
           return parseFloat(((s.totalTimeMin * 60) / s.gelloSessions).toFixed(1));
