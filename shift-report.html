@@ -960,6 +960,16 @@ document.addEventListener('change', e => {
 
 // ---- Init ----
 
+// Recover records renamed by an old station-mode build (shift-report:DATE:SHIFT):
+// copy them back to the date-only keys this page reads. Leaves the renamed
+// copies in place for station mode to adopt; no-ops once nothing is left.
+Object.keys(localStorage)
+  .filter(k => /^shift-report:\d{4}-\d{2}-\d{2}:.+$/.test(k))
+  .forEach(k => {
+    const legacy = k.replace(/:[^:]+$/, '');
+    if (!localStorage.getItem(legacy)) localStorage.setItem(legacy, localStorage.getItem(k));
+  });
+
 const today = new Date();
 const pad = n => String(n).padStart(2, '0');
 const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
