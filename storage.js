@@ -69,13 +69,16 @@ const store = (() => {
   // One-time migration: copy anything still in localStorage that the server
   // doesn't know about yet. localStorage is left untouched as a backup.
   function migrate() {
+    const migrated = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
       if (!k || !KEY_PATTERN.test(k)) continue;
       if (k in cache) continue;
       cache[k] = localStorage.getItem(k);
       put(k, true);
+      migrated.push(k);
     }
+    if (migrated.length) console.log('storage.js: migrated from localStorage:', migrated);
   }
 
   const ready = refresh().then(migrate).catch(err => {
