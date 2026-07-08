@@ -9,7 +9,10 @@ cleanup() {
   echo "Stopping server..."
   kill "$SERVER_PID" 2>/dev/null
   wait "$SERVER_PID" 2>/dev/null
-  exit 0
+  # Exit non-zero (conventional for Ctrl+C) so Terminal keeps the tab open
+  # when the script was launched by double-click — its default profile
+  # closes the tab on a clean exit.
+  exit 130
 }
 
 trap cleanup INT TERM

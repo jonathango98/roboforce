@@ -33,12 +33,18 @@ class Handler(SimpleHTTPRequestHandler):
             return key
         return None
 
+    def end_headers(self):
+        # Never let the browser serve stale pages/scripts (or API data) from
+        # its cache — a cached pre-storage.js page would silently keep using
+        # localStorage and skip migration.
+        self.send_header("Cache-Control", "no-cache")
+        super().end_headers()
+
     def _send_json(self, obj, status=200):
         body = json.dumps(obj).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
 
