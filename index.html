@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>RF Admin</title>
+<title>RF Station</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -92,6 +92,133 @@
   .pane.active { display: flex; flex-direction: column; }
 
   iframe { flex: 1; border: none; width: 100%; height: 100%; }
+
+  /* Admin password gate */
+  .gate {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .gate-card {
+    background: #fff;
+    border: 1px solid #e6e3de;
+    border-radius: 12px;
+    padding: 32px 36px;
+    width: 320px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    text-align: center;
+  }
+
+  .gate-card h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e1c1a;
+    margin-bottom: 6px;
+  }
+
+  .gate-card p {
+    font-size: 13px;
+    color: #8a847d;
+    margin-bottom: 18px;
+  }
+
+  .gate-card input {
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    border: 1px solid #d8d4ce;
+    border-radius: 8px;
+    outline: none;
+    margin-bottom: 12px;
+  }
+
+  .gate-card input:focus { border-color: #d97706; }
+
+  .gate-card input.error {
+    border-color: #dc2626;
+    animation: shake 0.3s;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  .gate-card button {
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(145deg, #e09118, #b45309);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .gate-card button:hover { filter: brightness(1.05); }
+
+  .gate-error {
+    font-size: 12px;
+    color: #dc2626;
+    margin-top: 10px;
+    min-height: 15px;
+  }
+
+  /* Admin sub-navigation */
+  .subnav {
+    background: #f0eeea;
+    border-bottom: 1px solid #e2dfda;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 20px;
+    height: 42px;
+    flex-shrink: 0;
+  }
+
+  .subtab {
+    background: none;
+    border: none;
+    color: #8a847d;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 500;
+    padding: 0 14px;
+    height: 42px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+
+  .subtab:hover { color: #1e1c1a; }
+
+  .subtab.active {
+    color: #1e1c1a;
+    border-bottom-color: #d97706;
+  }
+
+  .subnav .lock {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: #8a847d;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    padding: 0 4px;
+  }
+
+  .subnav .lock:hover { color: #1e1c1a; }
+
+  .subpane { display: none; flex: 1; overflow: hidden; }
+  .subpane.active { display: flex; flex-direction: column; }
 </style>
 </head>
 <body>
@@ -103,31 +230,102 @@
   </div>
   <div class="sep"></div>
   <button class="tab" onclick="switchTab(0)">Shift Report</button>
-  <button class="tab" onclick="switchTab(1)">Timesheet</button>
-  <button class="tab" onclick="switchTab(2)">Teleop Evaluator</button>
-  <button class="tab" onclick="switchTab(3)">Progress Tracker</button>
+  <button class="tab" onclick="switchTab(1)">Admin</button>
 </nav>
 
 <div class="pane"><iframe src="shift-report.html" title="Shift Report"></iframe></div>
-<div class="pane"><iframe src="timesheet.html" title="Timesheet"></iframe></div>
-<div class="pane"><iframe src="teleop-evaluator.html" title="Teleop Evaluator"></iframe></div>
-<div class="pane"><iframe src="progress-tracker.html" title="Progress Tracker"></iframe></div>
+
+<div class="pane" id="admin-pane">
+  <div class="gate" id="admin-gate">
+    <form class="gate-card" onsubmit="return unlockAdmin(event)">
+      <h2>Admin Access</h2>
+      <p>Enter the admin password to continue.</p>
+      <input type="password" id="admin-password" placeholder="Password" autocomplete="off" />
+      <button type="submit">Unlock</button>
+      <div class="gate-error" id="gate-error"></div>
+    </form>
+  </div>
+
+  <div class="subnav" id="admin-subnav" hidden>
+    <button class="subtab" onclick="switchSubTab(0)">Teleop Evaluator</button>
+    <button class="subtab" onclick="switchSubTab(1)">Progress Tracker</button>
+    <button class="lock" onclick="lockAdmin()" title="Lock admin pages">🔒 Lock</button>
+  </div>
+  <div class="subpane"><iframe data-src="teleop-evaluator.html" title="Teleop Evaluator"></iframe></div>
+  <div class="subpane"><iframe data-src="progress-tracker.html" title="Progress Tracker"></iframe></div>
+</div>
 
 <script src="storage.js"></script>
 <script>
+  const ADMIN_PASSWORD = 'robo4ever';
+
   const tabs = document.querySelectorAll('.tab');
   const panes = document.querySelectorAll('.pane');
+  const subtabs = document.querySelectorAll('.subtab');
+  const subpanes = document.querySelectorAll('.subpane');
+  const gate = document.getElementById('admin-gate');
+  const subnav = document.getElementById('admin-subnav');
+  const passwordInput = document.getElementById('admin-password');
+  const gateError = document.getElementById('gate-error');
 
   function switchTab(i, persist = true) {
     tabs.forEach((t, idx) => t.classList.toggle('active', idx === i));
     panes.forEach((p, idx) => p.classList.toggle('active', idx === i));
-    if (persist) store.set('rf-admin-tab', i);
+    if (persist) store.set('rf-station-tab', i);
+    if (i === 1 && gate.style.display !== 'none') passwordInput.focus();
   }
+
+  function unlockAdmin(e) {
+    e.preventDefault();
+    if (passwordInput.value === ADMIN_PASSWORD) {
+      sessionStorage.setItem('rf-admin-unlocked', '1');
+      showAdmin();
+    } else {
+      gateError.textContent = 'Incorrect password.';
+      passwordInput.classList.remove('error');
+      void passwordInput.offsetWidth;
+      passwordInput.classList.add('error');
+      passwordInput.select();
+    }
+    return false;
+  }
+
+  function showAdmin() {
+    gate.style.display = 'none';
+    subnav.hidden = false;
+    subpanes.forEach(p => {
+      const frame = p.querySelector('iframe');
+      if (!frame.src) frame.src = frame.dataset.src;
+    });
+    switchSubTab(parseInt(sessionStorage.getItem('rf-admin-subtab') ?? '0', 10) || 0);
+  }
+
+  function lockAdmin() {
+    sessionStorage.removeItem('rf-admin-unlocked');
+    subnav.hidden = true;
+    subpanes.forEach(p => {
+      p.classList.remove('active');
+      p.querySelector('iframe').removeAttribute('src');
+    });
+    gate.style.display = 'flex';
+    passwordInput.value = '';
+    gateError.textContent = '';
+    passwordInput.classList.remove('error');
+    passwordInput.focus();
+  }
+
+  function switchSubTab(i) {
+    subtabs.forEach((t, idx) => t.classList.toggle('active', idx === i));
+    subpanes.forEach((p, idx) => p.classList.toggle('active', idx === i));
+    sessionStorage.setItem('rf-admin-subtab', i);
+  }
+
+  if (sessionStorage.getItem('rf-admin-unlocked') === '1') showAdmin();
 
   switchTab(0, false);
   store.ready.then(() => {
-    const saved = parseInt(store.get('rf-admin-tab') ?? '0', 10);
-    switchTab(isNaN(saved) ? 0 : saved, false);
+    const saved = parseInt(store.get('rf-station-tab') ?? '0', 10);
+    switchTab(isNaN(saved) || saved >= tabs.length ? 0 : saved, false);
   });
 </script>
 

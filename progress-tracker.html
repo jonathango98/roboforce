@@ -52,6 +52,7 @@
 
   .page-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
   h1 { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+  .header-note { margin-left: auto; font-size: 12px; color: var(--text-3); }
 
   .card {
     background: var(--surface);
@@ -166,29 +167,6 @@
   .summary-tile.inference-tile .summary-tile-label { color: var(--inference); }
   .summary-tile.inference-tile .summary-tile-value { color: var(--inference); }
 
-  /* Per-operator summary section */
-  .operator-summary-grid {
-    display: flex; flex-direction: column; gap: 10px;
-  }
-  .op-summary-row {
-    display: flex; align-items: center; gap: 12px;
-    padding: 12px 14px; border-radius: 10px;
-    border: 1px solid var(--border); background: var(--surface-sub);
-    flex-wrap: wrap;
-  }
-  .op-summary-name {
-    font-size: 14px; font-weight: 700; color: var(--text);
-    min-width: 100px;
-  }
-  .op-summary-stats { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
-  .op-stat-chip {
-    display: flex; align-items: center; gap: 5px;
-    padding: 4px 10px; border-radius: 6px;
-    background: var(--surface); border: 1px solid var(--border);
-    font-size: 12.5px;
-  }
-  .op-stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
-  .op-stat-value { color: var(--text-2); font-weight: 500; }
 
   /* Detail table */
   .detail-table-wrap { overflow-x: auto; }
@@ -235,13 +213,14 @@
   .metric-muted { color: var(--text-3); }
 
   .shift-badge {
-    display: inline-block; font-size: 10px; font-weight: 600;
-    padding: 2px 7px; border-radius: 4px; text-transform: uppercase;
-    letter-spacing: 0.06em; margin-left: 6px;
+    display: inline-block;
+    width: 8px; height: 8px; border-radius: 50%;
+    margin-left: 6px; flex-shrink: 0; vertical-align: middle;
+    font-size: 0;
   }
-  .shift-morning  { background: #fef3c7; color: #92400e; }
-  .shift-afternoon { background: #dbeafe; color: #1e40af; }
-  .shift-night    { background: #ede9fe; color: #4c1d95; }
+  .shift-morning   { background: #f59e0b; }
+  .shift-afternoon { background: #3b82f6; }
+  .shift-night     { background: #8b5cf6; }
 
   .empty-state { font-size: 13px; color: var(--text-3); text-align: center; padding: 32px 20px; }
 
@@ -260,12 +239,66 @@
     .charts-row { grid-template-columns: 1fr; }
     .chart-half { height: 200px; }
   }
+
+  /* Shift chip indicator on operator chips */
+  .op-chip-shift {
+    font-size: 9px; font-weight: 800; text-transform: uppercase;
+    padding: 1px 5px; border-radius: 4px; margin-left: 4px; letter-spacing: 0.05em;
+  }
+  .op-chip-shift-morning   { background: #fef3c7; color: #92400e; }
+  .op-chip-shift-afternoon { background: #dbeafe; color: #1e40af; }
+  .op-chip-shift-night     { background: #ede9fe; color: #4c1d95; }
+
+  /* Shift Leaderboard */
+  .lb-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 640px) { .lb-grid { grid-template-columns: 1fr; } }
+  .lb-col { display: flex; flex-direction: column; gap: 6px; }
+  .lb-col-header {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.07em; padding-bottom: 8px;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 2px;
+  }
+  .lb-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface-sub);
+  }
+  .lb-rank-1 { background: #fffbeb; border-color: #fcd34d; }
+  .lb-rank-2 { background: #f9fafb; border-color: #d1d5db; }
+  .lb-rank-3 { background: #fff7f0; border-color: #fed7aa; }
+  .lb-medal {
+    width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800; flex-shrink: 0; line-height: 1;
+  }
+  .lb-medal-1 { background: #fcd34d; color: #78350f; }
+  .lb-medal-2 { background: #e5e7eb; color: #374151; }
+  .lb-medal-3 { background: #fed7aa; color: #7c2d12; }
+  .lb-rank-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--text-3);
+    background: var(--bg); border: 1px solid var(--border); flex-shrink: 0;
+  }
+  .lb-shift-name { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+  .lb-shift-label { font-size: 13px; font-weight: 600; color: var(--text); }
+  .lb-value { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; flex-shrink: 0; }
+  .lb-member-count { font-size: 11px; color: var(--text-3); font-weight: 500; margin-top: 1px; }
+
 </style>
 </head>
 <body>
 
 <div class="container">
-  <div class="page-header"><h1>Progress Tracker</h1></div>
+  <div class="page-header">
+    <h1>Progress Tracker</h1>
+    <span class="header-note">Operator shifts come from their shift reports</span>
+  </div>
 
   <!-- Controls -->
   <div class="card">
@@ -320,26 +353,32 @@
   <!-- Charts: Operator Trends -->
   <div class="card no-data" id="chart-trends-card">
     <div class="card-header"><div class="card-dot"></div><div class="card-title">Operator Trends</div></div>
-    <div class="charts-row">
-      <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--gello);margin-bottom:8px">GELLO Sessions</div>
-        <div class="chart-half"><canvas id="chart-gello"></canvas></div>
-      </div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--inference);margin-bottom:8px">Inference Sessions</div>
+    <div class="chart-full"><canvas id="chart-inference"></canvas></div>
+    <div class="charts-row" style="margin-top:12px">
       <div>
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--umi);margin-bottom:8px">UMI Sessions</div>
         <div class="chart-half"><canvas id="chart-umi"></canvas></div>
       </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--gello);margin-bottom:8px">GELLO Sessions</div>
+        <div class="chart-half"><canvas id="chart-gello"></canvas></div>
+      </div>
     </div>
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--inference);margin-bottom:8px;margin-top:12px">Inference Sessions</div>
-    <div class="chart-full"><canvas id="chart-inference"></canvas></div>
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:8px;margin-top:12px">Avg Time per Session (sec)</div>
     <div class="chart-full"><canvas id="chart-avg"></canvas></div>
   </div>
 
-  <!-- Per-Operator Summary -->
+  <!-- Per-Operator Leaderboard -->
   <div class="card no-data" id="per-op-card">
-    <div class="card-header"><div class="card-dot"></div><div class="card-title">Per Operator (Totals)</div></div>
-    <div class="operator-summary-grid" id="per-op-grid"></div>
+    <div class="card-header"><div class="card-dot"></div><div class="card-title">Operator Leaderboard</div></div>
+    <div class="lb-grid" id="per-op-grid"></div>
+  </div>
+
+  <!-- Shift Leaderboard -->
+  <div class="card no-data" id="leaderboard-card">
+    <div class="card-header"><div class="card-dot"></div><div class="card-title">Shift Leaderboard</div></div>
+    <div class="lb-grid" id="lb-grid"></div>
   </div>
 
   <!-- Day-by-Day Detail -->
@@ -351,9 +390,9 @@
           <tr>
             <th>Date</th>
             <th>Operator</th>
-            <th style="color:var(--gello)">GELLO Sessions</th>
-            <th style="color:var(--umi)">UMI Sessions</th>
             <th style="color:var(--inference)">Inference</th>
+            <th style="color:var(--umi)">UMI Sessions</th>
+            <th style="color:var(--gello)">GELLO Sessions</th>
             <th>Avg Time (sec)</th>
             <th>Total Time (min)</th>
           </tr>
@@ -389,18 +428,36 @@ function shiftBadge(shift) {
   return `<span class="shift-badge ${cls}">${shift}</span>`;
 }
 
-// ---- Data extraction from the storage server ----
+// ---- Operator shifts (derived from the shift reports they appear in) ----
 
-function getAllDates() {
-  return store.keys()
-    // Date-only keys; ignore shift-report:DATE:SHIFT copies left by station mode
-    .filter(key => /^shift-report:\d{4}-\d{2}-\d{2}$/.test(key))
-    .map(key => key.replace('shift-report:', ''))
-    .sort();
+function getOperatorShift(name) {
+  // Most recent shift the operator worked within the loaded range
+  for (let i = loadedDays.length - 1; i >= 0; i--) {
+    const d = loadedDays[i];
+    if (d.shift && d.operatorStats[name]) return d.shift;
+  }
+  return null;
 }
 
-function parseShiftData(dateStr) {
-  const raw = store.get(`shift-report:${dateStr}`);
+// ---- Data extraction from the storage server ----
+
+const SHIFT_ORDER = { Morning: 0, Afternoon: 1, Night: 2 };
+
+// Station mode reads only its own station-report:YYYY-MM-DD:Shift
+// namespace — main's shift-report:* records are left untouched.
+function getAllReports() {
+  const reports = [];
+  store.keys().forEach(key => {
+    if (!key.startsWith('station-report:')) return;
+    const m = key.slice('station-report:'.length).match(/^(\d{4}-\d{2}-\d{2}):(.+)$/);
+    if (!m) return;
+    reports.push({ date: m[1], shift: m[2], key });
+  });
+  return reports;
+}
+
+function parseReport(key) {
+  const raw = store.get(key);
   if (!raw) return null;
   try { return JSON.parse(raw); } catch { return null; }
 }
@@ -448,7 +505,7 @@ function extractOperatorStats(data) {
 
 // ---- State ----
 
-let loadedDays = [];     // [{ date, shift, operatorStats }]
+let loadedDays = [];     // [{ date, shift, operatorStats }] — one entry per report (date + shift)
 let allOperators = [];   // sorted list of all operator names
 let selectedOps = new Set();
 
@@ -461,25 +518,25 @@ async function loadData() {
   const to   = document.getElementById('toDate').value;
   const shiftFilter = document.getElementById('shiftFilter').value;
 
-  const allDates = getAllDates();
-  const filtered = allDates.filter(d => {
-    if (from && d < from) return false;
-    if (to && d > to) return false;
-    return true;
-  });
-
   loadedDays = [];
   const opSet = new Set();
 
-  filtered.forEach(date => {
-    const data = parseShiftData(date);
+  getAllReports().forEach(({ date, shift, key }) => {
+    if (from && date < from) return;
+    if (to && date > to) return;
+    const data = parseReport(key);
     if (!data) return;
-    if (shiftFilter && data.shift !== shiftFilter) return;
+    const reportShift = shift || data.shift || '';
+    if (shiftFilter && reportShift !== shiftFilter) return;
 
     const operatorStats = extractOperatorStats(data);
     Object.keys(operatorStats).forEach(n => opSet.add(n));
-    loadedDays.push({ date, shift: data.shift || '', operatorStats });
+    loadedDays.push({ date, shift: reportShift, operatorStats });
   });
+
+  loadedDays.sort((a, b) => a.date !== b.date
+    ? (a.date < b.date ? -1 : 1)
+    : (SHIFT_ORDER[a.shift] ?? 9) - (SHIFT_ORDER[b.shift] ?? 9));
 
   allOperators = Array.from(opSet).sort();
   selectedOps = new Set(allOperators);
@@ -509,9 +566,13 @@ function renderOperatorFilter() {
   const container = document.getElementById('operator-chips');
   container.innerHTML = '';
   allOperators.forEach(name => {
+    const shift = getOperatorShift(name);
     const chip = document.createElement('div');
     chip.className = 'op-chip' + (selectedOps.has(name) ? ' selected' : '');
-    chip.innerHTML = `<span class="op-chip-dot"></span>${name}`;
+    const shiftTag = shift
+      ? `<span class="op-chip-shift op-chip-shift-${shift.toLowerCase()}">${shift.slice(0,1)}</span>`
+      : '';
+    chip.innerHTML = `<span class="op-chip-dot"></span>${name}${shiftTag}`;
     chip.onclick = () => toggleOperator(name, chip);
     container.appendChild(chip);
   });
@@ -629,39 +690,51 @@ function baseLineOptions(yLabel) {
   };
 }
 
+// Merge the per-report entries into one entry per calendar date, summing
+// each operator's stats across that date's shifts — charts plot by day.
+function aggregateByDate() {
+  const byDate = new Map();
+  loadedDays.forEach(({ date, operatorStats }) => {
+    if (!byDate.has(date)) byDate.set(date, { date, operatorStats: {} });
+    const target = byDate.get(date).operatorStats;
+    Object.entries(operatorStats).forEach(([name, s]) => {
+      if (!target[name]) target[name] = { gelloSessions: 0, umiCount: 0, inferenceCount: 0, totalTimeMin: 0 };
+      target[name].gelloSessions  += s.gelloSessions;
+      target[name].umiCount       += s.umiCount;
+      target[name].inferenceCount += s.inferenceCount;
+      target[name].totalTimeMin   += s.totalTimeMin;
+    });
+  });
+  return Array.from(byDate.values()).sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+
 function renderCharts() {
-  const dates = loadedDays.map(d => d.date);
-  const labels = dates.map(shortDate);
+  const chartDays = aggregateByDate();
+  const labels = chartDays.map(d => shortDate(d.date));
   const activeOps = allOperators.filter(n => selectedOps.has(n));
 
   // --- Daily stacked bar ---
   destroyChart('daily');
-  const dailyGello = dates.map(date => {
-    const day = loadedDays.find(d => d.date === date);
-    return Object.entries(day.operatorStats)
+  const dailyGello = chartDays.map(day =>
+    Object.entries(day.operatorStats)
       .filter(([n]) => selectedOps.has(n))
-      .reduce((s, [, v]) => s + v.gelloSessions, 0);
-  });
-  const dailyUMI = dates.map(date => {
-    const day = loadedDays.find(d => d.date === date);
-    return Object.entries(day.operatorStats)
+      .reduce((s, [, v]) => s + v.gelloSessions, 0));
+  const dailyUMI = chartDays.map(day =>
+    Object.entries(day.operatorStats)
       .filter(([n]) => selectedOps.has(n))
-      .reduce((s, [, v]) => s + v.umiCount, 0);
-  });
-  const dailyInference = dates.map(date => {
-    const day = loadedDays.find(d => d.date === date);
-    return Object.entries(day.operatorStats)
+      .reduce((s, [, v]) => s + v.umiCount, 0));
+  const dailyInference = chartDays.map(day =>
+    Object.entries(day.operatorStats)
       .filter(([n]) => selectedOps.has(n))
-      .reduce((s, [, v]) => s + v.inferenceCount, 0);
-  });
+      .reduce((s, [, v]) => s + v.inferenceCount, 0));
   chartInstances['daily'] = new Chart(document.getElementById('chart-daily'), {
     type: 'bar',
     data: {
       labels,
       datasets: [
-        { label: 'GELLO Sessions',     data: dailyGello,     backgroundColor: 'rgba(139,92,246,0.8)', borderRadius: 4, stack: 'sessions' },
-        { label: 'UMI Sessions',       data: dailyUMI,       backgroundColor: 'rgba(59,130,246,0.8)', borderRadius: 4, stack: 'sessions' },
         { label: 'Inference Sessions', data: dailyInference, backgroundColor: 'rgba(16,185,129,0.8)', borderRadius: 4, stack: 'sessions' },
+        { label: 'UMI Sessions',       data: dailyUMI,       backgroundColor: 'rgba(59,130,246,0.8)', borderRadius: 4, stack: 'sessions' },
+        { label: 'GELLO Sessions',     data: dailyGello,     backgroundColor: 'rgba(139,92,246,0.8)', borderRadius: 4, stack: 'sessions' },
       ],
     },
     options: {
@@ -686,10 +759,7 @@ function renderCharts() {
       labels,
       datasets: activeOps.map(name => ({
         label: name,
-        data: dates.map(date => {
-          const day = loadedDays.find(d => d.date === date);
-          return day.operatorStats[name]?.gelloSessions || null;
-        }),
+        data: chartDays.map(day => day.operatorStats[name]?.gelloSessions || null),
         borderColor: opColor(name),
         backgroundColor: opColor(name) + '22',
         tension: 0.3, pointRadius: 4, pointHoverRadius: 6,
@@ -707,10 +777,7 @@ function renderCharts() {
       labels,
       datasets: activeOps.map(name => ({
         label: name,
-        data: dates.map(date => {
-          const day = loadedDays.find(d => d.date === date);
-          return day.operatorStats[name]?.umiCount || null;
-        }),
+        data: chartDays.map(day => day.operatorStats[name]?.umiCount || null),
         borderColor: opColor(name),
         backgroundColor: opColor(name) + '22',
         tension: 0.3, pointRadius: 4, pointHoverRadius: 6,
@@ -728,10 +795,7 @@ function renderCharts() {
       labels,
       datasets: activeOps.map(name => ({
         label: name,
-        data: dates.map(date => {
-          const day = loadedDays.find(d => d.date === date);
-          return day.operatorStats[name]?.inferenceCount || null;
-        }),
+        data: chartDays.map(day => day.operatorStats[name]?.inferenceCount || null),
         borderColor: opColor(name),
         backgroundColor: opColor(name) + '22',
         tension: 0.3, pointRadius: 4, pointHoverRadius: 6,
@@ -749,8 +813,7 @@ function renderCharts() {
       labels,
       datasets: activeOps.map(name => ({
         label: name,
-        data: dates.map(date => {
-          const day = loadedDays.find(d => d.date === date);
+        data: chartDays.map(day => {
           const s = day.operatorStats[name];
           if (!s || s.gelloSessions === 0 || s.totalTimeMin === 0) return null;
           return parseFloat(((s.totalTimeMin * 60) / s.gelloSessions).toFixed(1));
@@ -771,6 +834,7 @@ function renderAll() {
   renderTeamSummary();
   renderCharts();
   renderPerOperator();
+  renderShiftLeaderboard();
   renderDetail();
 }
 
@@ -781,15 +845,15 @@ function renderTeamSummary() {
   grid.innerHTML = '';
 
   const tiles = [
-    { label: 'Days Tracked',     value: fmt(days, 0),                                       unit: 'days',             cls: '' },
-    { label: 'GELLO Sessions',   value: fmt(t.gelloSessions, 0),                             unit: 'total sessions',   cls: 'gello-tile' },
-    { label: 'UMI Sessions',     value: fmt(t.umiCount, 0),                                  unit: 'total sessions',   cls: 'umi-tile' },
+    { label: 'Shifts Tracked',   value: fmt(days, 0),                                       unit: 'shift reports',    cls: '' },
     { label: 'Inference',        value: fmt(t.inferenceCount, 0),                             unit: 'total sessions',   cls: 'inference-tile' },
+    { label: 'UMI Sessions',     value: fmt(t.umiCount, 0),                                  unit: 'total sessions',   cls: 'umi-tile' },
+    { label: 'GELLO Sessions',   value: fmt(t.gelloSessions, 0),                             unit: 'total sessions',   cls: 'gello-tile' },
     { label: 'Total Time',       value: fmt(t.totalTimeMin, 1),                               unit: 'minutes',          cls: '' },
     { label: 'Avg Time',         value: t.avgTimeSec != null ? fmt(t.avgTimeSec, 1) : '—',   unit: 'sec / GELLO session', cls: '' },
-    { label: 'GELLO / Day',      value: days > 0 ? fmt(t.gelloSessions / days, 1) : '—',     unit: 'avg sessions',     cls: 'gello-tile' },
-    { label: 'UMI / Day',        value: days > 0 ? fmt(t.umiCount / days, 1) : '—',          unit: 'avg sessions',     cls: 'umi-tile' },
-    { label: 'Inference / Day',  value: days > 0 ? fmt(t.inferenceCount / days, 1) : '—',    unit: 'avg sessions',     cls: 'inference-tile' },
+    { label: 'Inference / Shift', value: days > 0 ? fmt(t.inferenceCount / days, 1) : '—',   unit: 'avg sessions',     cls: 'inference-tile' },
+    { label: 'UMI / Shift',      value: days > 0 ? fmt(t.umiCount / days, 1) : '—',          unit: 'avg sessions',     cls: 'umi-tile' },
+    { label: 'GELLO / Shift',    value: days > 0 ? fmt(t.gelloSessions / days, 1) : '—',     unit: 'avg sessions',     cls: 'gello-tile' },
   ];
 
   tiles.forEach(({ label, value, unit, cls }) => {
@@ -803,6 +867,7 @@ function renderTeamSummary() {
   });
 }
 
+
 function renderPerOperator() {
   const map = aggregatePerOperator();
   const grid = document.getElementById('per-op-grid');
@@ -814,37 +879,117 @@ function renderPerOperator() {
     return;
   }
 
-  names.forEach(name => {
-    const s = map[name];
-    const row = document.createElement('div');
-    row.className = 'op-summary-row';
+  const shiftClasses = { Morning: 'shift-morning', Afternoon: 'shift-afternoon', Night: 'shift-night' };
 
-    const nameEl = document.createElement('div');
-    nameEl.className = 'op-summary-name';
-    nameEl.textContent = name;
-    row.appendChild(nameEl);
+  const metrics = [
+    { key: 'inferenceCount', label: 'Inference', color: 'var(--inference)' },
+    { key: 'gelloSessions',  label: 'GELLO',     color: 'var(--gello)' },
+    { key: 'umiCount',       label: 'UMI',        color: 'var(--umi)' },
+  ];
 
-    const statsEl = document.createElement('div');
-    statsEl.className = 'op-summary-stats';
+  metrics.forEach(({ key, label, color }) => {
+    const col = document.createElement('div');
+    col.className = 'lb-col';
 
-    const chips = [
-      { label: 'GELLO',      value: fmt(s.gelloSessions, 0),                                       color: 'var(--gello)' },
-      { label: 'UMI',        value: fmt(s.umiCount, 0),                                             color: 'var(--umi)' },
-      { label: 'Inference',  value: fmt(s.inferenceCount, 0),                                        color: 'var(--inference)' },
-      { label: 'Avg Time',   value: s.avgTimeSec != null ? `${fmt(s.avgTimeSec, 1)} sec` : '—',    color: 'var(--text-3)' },
-      { label: 'Total Time', value: `${fmt(s.totalTimeMin, 1)} min`,                                color: 'var(--text-3)' },
-      { label: 'Days',       value: `${s.days}`,                                                     color: 'var(--text-3)' },
-    ];
+    const header = document.createElement('div');
+    header.className = 'lb-col-header';
+    header.style.color = color;
+    header.textContent = label;
+    col.appendChild(header);
 
-    chips.forEach(({ label, value, color }) => {
-      const chip = document.createElement('div');
-      chip.className = 'op-stat-chip';
-      chip.innerHTML = `<span class="op-stat-label" style="color:${color}">${label}</span><span class="op-stat-value">${value}</span>`;
-      statsEl.appendChild(chip);
+    const ranked = names.slice().sort((a, b) => (map[b][key] ?? -Infinity) - (map[a][key] ?? -Infinity));
+
+    ranked.forEach((name, i) => {
+      const rank = i + 1;
+      const s = map[name];
+      const shift = getOperatorShift(name);
+      const rankEl = rank <= 3
+        ? `<span class="lb-medal lb-medal-${rank}">${rank}</span>`
+        : `<span class="lb-rank-num">${rank}</span>`;
+
+      const row = document.createElement('div');
+      row.className = 'lb-row' + (rank <= 3 ? ` lb-rank-${rank}` : '');
+      row.innerHTML = `
+        ${rankEl}
+        <div class="lb-shift-name">
+          ${shift ? `<span class="shift-badge ${shiftClasses[shift] || ''}"></span>` : ''}
+          <span class="lb-shift-label">${name}</span>
+        </div>
+        <span class="lb-value" style="color:${color}">${fmt(s[key], 0)}</span>
+      `;
+      col.appendChild(row);
     });
 
-    row.appendChild(statsEl);
-    grid.appendChild(row);
+    grid.appendChild(col);
+  });
+}
+
+function renderShiftLeaderboard() {
+  const grid = document.getElementById('lb-grid');
+  grid.innerHTML = '';
+
+  // Aggregate totals per report shift — output counts toward the shift
+  // of the report it was logged in, not a fixed operator assignment
+  const shiftTotals = {};
+  loadedDays.forEach(({ shift, operatorStats }) => {
+    const s = shift || 'Unassigned';
+    Object.entries(operatorStats).forEach(([name, stats]) => {
+      if (!selectedOps.has(name)) return;
+      if (!shiftTotals[s]) {
+        shiftTotals[s] = { inferenceCount: 0, umiCount: 0, gelloSessions: 0 };
+      }
+      shiftTotals[s].inferenceCount += stats.inferenceCount;
+      shiftTotals[s].umiCount       += stats.umiCount;
+      shiftTotals[s].gelloSessions  += stats.gelloSessions;
+    });
+  });
+
+  if (Object.keys(shiftTotals).length === 0) {
+    grid.innerHTML = '<div class="empty-state">No data.</div>';
+    return;
+  }
+
+  const shiftClasses = { Morning: 'shift-morning', Afternoon: 'shift-afternoon', Night: 'shift-night', Unassigned: '' };
+
+  const metrics = [
+    { key: 'inferenceCount', label: 'Inference', color: 'var(--inference)' },
+    { key: 'gelloSessions',  label: 'GELLO',     color: 'var(--gello)' },
+    { key: 'umiCount',       label: 'UMI',        color: 'var(--umi)' },
+  ];
+
+  metrics.forEach(({ key, label, color }) => {
+    const col = document.createElement('div');
+    col.className = 'lb-col';
+
+    const header = document.createElement('div');
+    header.className = 'lb-col-header';
+    header.style.color = color;
+    header.textContent = label;
+    col.appendChild(header);
+
+    const ranked = Object.entries(shiftTotals)
+      .sort(([, a], [, b]) => b[key] - a[key]);
+
+    ranked.forEach(([shift, t], i) => {
+      const rank = i + 1;
+      const rankEl = rank <= 3
+        ? `<span class="lb-medal lb-medal-${rank}">${rank}</span>`
+        : `<span class="lb-rank-num">${rank}</span>`;
+
+      const row = document.createElement('div');
+      row.className = 'lb-row' + (rank <= 3 ? ` lb-rank-${rank}` : '');
+      row.innerHTML = `
+        ${rankEl}
+        <div class="lb-shift-name">
+          <span class="shift-badge ${shiftClasses[shift] || ''}"></span>
+          <span class="lb-shift-label">${shift}</span>
+        </div>
+        <span class="lb-value" style="color:${color}">${fmt(t[key], 0)}</span>
+      `;
+      col.appendChild(row);
+    });
+
+    grid.appendChild(col);
   });
 }
 
@@ -880,9 +1025,9 @@ function renderDetail() {
       tr.innerHTML = `
         <td></td>
         <td style="font-weight:600">${name}</td>
-        <td class="${s.gelloSessions > 0 ? 'metric-gello' : 'metric-muted'}">${s.gelloSessions > 0 ? fmt(s.gelloSessions, 0) : '—'}</td>
-        <td class="${s.umiCount > 0 ? 'metric-umi' : 'metric-muted'}">${s.umiCount > 0 ? fmt(s.umiCount, 0) : '—'}</td>
         <td style="${s.inferenceCount > 0 ? 'color:var(--inference);font-weight:600' : 'color:var(--text-3)'}">${s.inferenceCount > 0 ? fmt(s.inferenceCount, 0) : '—'}</td>
+        <td class="${s.umiCount > 0 ? 'metric-umi' : 'metric-muted'}">${s.umiCount > 0 ? fmt(s.umiCount, 0) : '—'}</td>
+        <td class="${s.gelloSessions > 0 ? 'metric-gello' : 'metric-muted'}">${s.gelloSessions > 0 ? fmt(s.gelloSessions, 0) : '—'}</td>
         <td>${avgSec}</td>
         <td>${s.totalTimeMin > 0 ? fmt(s.totalTimeMin, 1) : '—'}</td>
       `;
@@ -902,10 +1047,10 @@ function renderDetail() {
     subRow.className = 'subtotal-row';
     subRow.innerHTML = `
       <td></td>
-      <td>Day Total</td>
-      <td>${dayTotals.gelloSessions > 0 ? fmt(dayTotals.gelloSessions, 0) : '—'}</td>
-      <td>${dayTotals.umiCount > 0 ? fmt(dayTotals.umiCount, 0) : '—'}</td>
+      <td>Shift Total</td>
       <td>${dayTotals.inferenceCount > 0 ? fmt(dayTotals.inferenceCount, 0) : '—'}</td>
+      <td>${dayTotals.umiCount > 0 ? fmt(dayTotals.umiCount, 0) : '—'}</td>
+      <td>${dayTotals.gelloSessions > 0 ? fmt(dayTotals.gelloSessions, 0) : '—'}</td>
       <td>${dayAvgSec}</td>
       <td>${dayTotals.totalTimeMin > 0 ? fmt(dayTotals.totalTimeMin, 1) : '—'}</td>
     `;
@@ -926,9 +1071,9 @@ function renderDetail() {
   grandRow.innerHTML = `
     <td></td>
     <td>Grand Total</td>
-    <td>${grandTotals.gelloSessions > 0 ? fmt(grandTotals.gelloSessions, 0) : '—'}</td>
-    <td>${grandTotals.umiCount > 0 ? fmt(grandTotals.umiCount, 0) : '—'}</td>
     <td>${grandTotals.inferenceCount > 0 ? fmt(grandTotals.inferenceCount, 0) : '—'}</td>
+    <td>${grandTotals.umiCount > 0 ? fmt(grandTotals.umiCount, 0) : '—'}</td>
+    <td>${grandTotals.gelloSessions > 0 ? fmt(grandTotals.gelloSessions, 0) : '—'}</td>
     <td>${grandAvgSec}</td>
     <td>${grandTotals.totalTimeMin > 0 ? fmt(grandTotals.totalTimeMin, 1) : '—'}</td>
   `;
@@ -947,12 +1092,12 @@ const today = new Date();
 const pad = n => String(n).padStart(2, '0');
 const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
 
-// Default to last 14 days
-const twoWeeksAgo = new Date(today);
-twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 13);
-const twoWeeksAgoStr = `${twoWeeksAgo.getFullYear()}-${pad(twoWeeksAgo.getMonth()+1)}-${pad(twoWeeksAgo.getDate())}`;
+// Default to last 7 days
+const sevenDaysAgo = new Date(today);
+sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+const sevenDaysAgoStr = `${sevenDaysAgo.getFullYear()}-${pad(sevenDaysAgo.getMonth()+1)}-${pad(sevenDaysAgo.getDate())}`;
 
-document.getElementById('fromDate').value = twoWeeksAgoStr;
+document.getElementById('fromDate').value = sevenDaysAgoStr;
 document.getElementById('toDate').value = todayStr;
 </script>
 </body>
