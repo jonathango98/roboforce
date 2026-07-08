@@ -255,6 +255,7 @@
   <div class="subpane"><iframe data-src="progress-tracker.html" title="Progress Tracker"></iframe></div>
 </div>
 
+<script src="storage.js"></script>
 <script>
   const ADMIN_PASSWORD = 'robo4ever';
 
@@ -267,10 +268,10 @@
   const passwordInput = document.getElementById('admin-password');
   const gateError = document.getElementById('gate-error');
 
-  function switchTab(i) {
+  function switchTab(i, persist = true) {
     tabs.forEach((t, idx) => t.classList.toggle('active', idx === i));
     panes.forEach((p, idx) => p.classList.toggle('active', idx === i));
-    localStorage.setItem('rf-station-tab', i);
+    if (persist) store.set('rf-station-tab', i);
     if (i === 1 && gate.style.display !== 'none') passwordInput.focus();
   }
 
@@ -321,8 +322,11 @@
 
   if (sessionStorage.getItem('rf-admin-unlocked') === '1') showAdmin();
 
-  const saved = parseInt(localStorage.getItem('rf-station-tab') ?? '0', 10);
-  switchTab(isNaN(saved) || saved >= tabs.length ? 0 : saved);
+  switchTab(0, false);
+  store.ready.then(() => {
+    const saved = parseInt(store.get('rf-station-tab') ?? '0', 10);
+    switchTab(isNaN(saved) || saved >= tabs.length ? 0 : saved, false);
+  });
 </script>
 
 </body>

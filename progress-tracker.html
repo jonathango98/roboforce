@@ -403,6 +403,7 @@
   </div>
 </div>
 
+<script src="storage.js"></script>
 <script>
 // ---- Helpers ----
 
@@ -438,7 +439,7 @@ function getOperatorShift(name) {
   return null;
 }
 
-// ---- Data extraction from localStorage ----
+// ---- Data extraction from the storage server ----
 
 const SHIFT_ORDER = { Morning: 0, Afternoon: 1, Night: 2 };
 
@@ -446,18 +447,17 @@ const SHIFT_ORDER = { Morning: 0, Afternoon: 1, Night: 2 };
 // namespace — main's shift-report:* records are left untouched.
 function getAllReports() {
   const reports = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (!key || !key.startsWith('station-report:')) continue;
+  store.keys().forEach(key => {
+    if (!key.startsWith('station-report:')) return;
     const m = key.slice('station-report:'.length).match(/^(\d{4}-\d{2}-\d{2}):(.+)$/);
-    if (!m) continue;
+    if (!m) return;
     reports.push({ date: m[1], shift: m[2], key });
-  }
+  });
   return reports;
 }
 
 function parseReport(key) {
-  const raw = localStorage.getItem(key);
+  const raw = store.get(key);
   if (!raw) return null;
   try { return JSON.parse(raw); } catch { return null; }
 }
@@ -511,7 +511,9 @@ let selectedOps = new Set();
 
 // ---- Load ----
 
-function loadData() {
+async function loadData() {
+  // Re-pull from the server so edits made in the Shift Report tab show up.
+  try { await store.refresh(); } catch {}
   const from = document.getElementById('fromDate').value;
   const to   = document.getElementById('toDate').value;
   const shiftFilter = document.getElementById('shiftFilter').value;

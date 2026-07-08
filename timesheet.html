@@ -295,6 +295,7 @@
 
 <div class="toast" id="toast">Saved</div>
 
+<script src="storage.js"></script>
 <script>
   const STORAGE_KEY = 'timesheet_v4';
   const DAYS = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
@@ -432,7 +433,7 @@
 
   function save() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(gatherState()));
+      store.set(STORAGE_KEY, JSON.stringify(gatherState()));
       document.getElementById('savedText').textContent =
         `Saved at ${new Date().toLocaleTimeString()}`;
     } catch (e) {}
@@ -440,7 +441,7 @@
 
   function load() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = store.get(STORAGE_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch { return null; }
   }
@@ -494,18 +495,20 @@
 
   const DEFAULT_NAME = 'Jonathan Goenadibrata';
 
-  const existing = load();
-  document.getElementById('empName').value = DEFAULT_NAME;
-  document.getElementById('weekStart').value = fmtISO(getCurrentWeekSaturday());
-  if (existing) {
-    if (existing.certDate) document.getElementById('certDate').value = existing.certDate;
-    else document.getElementById('certDate').value = fmtISO(new Date());
-    renderDays(null);
-  } else {
-    document.getElementById('certDate').value = fmtISO(new Date());
-    renderDays(null);
-  }
-  save();
+  store.ready.then(() => {
+    const existing = load();
+    document.getElementById('empName').value = DEFAULT_NAME;
+    document.getElementById('weekStart').value = fmtISO(getCurrentWeekSaturday());
+    if (existing) {
+      if (existing.certDate) document.getElementById('certDate').value = existing.certDate;
+      else document.getElementById('certDate').value = fmtISO(new Date());
+      renderDays(null);
+    } else {
+      document.getElementById('certDate').value = fmtISO(new Date());
+      renderDays(null);
+    }
+    save();
+  });
 
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-clear]');
@@ -552,7 +555,7 @@
 
   document.getElementById('clearBtn').addEventListener('click', () => {
     if (!confirm('Reset all fields?')) return;
-    localStorage.removeItem(STORAGE_KEY);
+    store.remove(STORAGE_KEY);
     document.getElementById('empName').value = DEFAULT_NAME;
     document.getElementById('weekStart').value = fmtISO(getCurrentWeekSaturday());
     document.getElementById('certDate').value = fmtISO(new Date());

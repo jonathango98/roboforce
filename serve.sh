@@ -14,7 +14,7 @@ cleanup() {
 
 trap cleanup INT TERM
 
-python3 -m http.server "$PORT" --directory "$DIRECTORY" &
+python3 "$DIRECTORY/server.py" &
 SERVER_PID=$!
 
 sleep 0.5

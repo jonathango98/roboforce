@@ -366,6 +366,7 @@
   </div>
 </div>
 
+<script src="storage.js"></script>
 <script>
 const STATION_TYPES = {
   UMI:       { label: 'UMI',       color: 'var(--umi)',       fields: ['count'] },
@@ -821,19 +822,16 @@ function storageKey(date, shift) { return `station-report:${date}:${shift}`; }
 // main's records as shift-report:DATE:SHIFT — restore main's date-only
 // key and adopt a copy into the station namespace.
 function repairMigratedRecords() {
-  const migratedKeys = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && /^shift-report:\d{4}-\d{2}-\d{2}:.+$/.test(key)) migratedKeys.push(key);
-  }
-  migratedKeys.forEach(key => {
-    const val = localStorage.getItem(key);
-    const legacyKey = key.replace(/:[^:]+$/, '');
-    if (!localStorage.getItem(legacyKey)) localStorage.setItem(legacyKey, val);
-    const stationKey = key.replace(/^shift-report:/, 'station-report:');
-    if (!localStorage.getItem(stationKey)) localStorage.setItem(stationKey, val);
-    localStorage.removeItem(key);
-  });
+  store.keys()
+    .filter(key => /^shift-report:\d{4}-\d{2}-\d{2}:.+$/.test(key))
+    .forEach(key => {
+      const val = store.get(key);
+      const legacyKey = key.replace(/:[^:]+$/, '');
+      if (!store.get(legacyKey)) store.set(legacyKey, val);
+      const stationKey = key.replace(/^shift-report:/, 'station-report:');
+      if (!store.get(stationKey)) store.set(stationKey, val);
+      store.remove(key);
+    });
 }
 
 function collectData() {
@@ -853,12 +851,12 @@ function collectData() {
 
 function saveCurrentDate() {
   if (!currentDate || !currentShift || isSwitchingDate) return;
-  localStorage.setItem(storageKey(currentDate, currentShift), JSON.stringify(collectData()));
+  store.set(storageKey(currentDate, currentShift), JSON.stringify(collectData()));
 }
 
 function loadReport(date, shift) {
   isSwitchingDate = true;
-  const raw = localStorage.getItem(storageKey(date, shift));
+  const raw = store.get(storageKey(date, shift));
   const data = raw ? JSON.parse(raw) : null;
 
   document.getElementById('shift').value     = shift;
@@ -1014,12 +1012,14 @@ document.addEventListener('change', e => {
 
 // ---- Init ----
 
-const today = new Date();
-const pad = n => String(n).padStart(2, '0');
-const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
-document.getElementById('reportDate').value = todayStr;
-repairMigratedRecords();
-loadReport(todayStr, document.getElementById('shift').value);
+store.ready.then(() => {
+  const today = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+  document.getElementById('reportDate').value = todayStr;
+  repairMigratedRecords();
+  loadReport(todayStr, document.getElementById('shift').value);
+});
 </script>
 </body>
 </html>
