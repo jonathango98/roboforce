@@ -364,6 +364,7 @@
   </div>
 </div>
 
+<script src="storage.js"></script>
 <script>
 // ---- Helpers ----
 
@@ -388,22 +389,18 @@ function shiftBadge(shift) {
   return `<span class="shift-badge ${cls}">${shift}</span>`;
 }
 
-// ---- Data extraction from localStorage ----
+// ---- Data extraction from the storage server ----
 
 function getAllDates() {
-  const dates = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
+  return store.keys()
     // Date-only keys; ignore shift-report:DATE:SHIFT copies left by station mode
-    if (key && /^shift-report:\d{4}-\d{2}-\d{2}$/.test(key)) {
-      dates.push(key.replace('shift-report:', ''));
-    }
-  }
-  return dates.sort();
+    .filter(key => /^shift-report:\d{4}-\d{2}-\d{2}$/.test(key))
+    .map(key => key.replace('shift-report:', ''))
+    .sort();
 }
 
 function parseShiftData(dateStr) {
-  const raw = localStorage.getItem(`shift-report:${dateStr}`);
+  const raw = store.get(`shift-report:${dateStr}`);
   if (!raw) return null;
   try { return JSON.parse(raw); } catch { return null; }
 }
@@ -457,7 +454,9 @@ let selectedOps = new Set();
 
 // ---- Load ----
 
-function loadData() {
+async function loadData() {
+  // Re-pull from the server so edits made in the Shift Report tab show up.
+  try { await store.refresh(); } catch {}
   const from = document.getElementById('fromDate').value;
   const to   = document.getElementById('toDate').value;
   const shiftFilter = document.getElementById('shiftFilter').value;

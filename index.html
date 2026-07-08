@@ -113,18 +113,22 @@
 <div class="pane"><iframe src="teleop-evaluator.html" title="Teleop Evaluator"></iframe></div>
 <div class="pane"><iframe src="progress-tracker.html" title="Progress Tracker"></iframe></div>
 
+<script src="storage.js"></script>
 <script>
   const tabs = document.querySelectorAll('.tab');
   const panes = document.querySelectorAll('.pane');
 
-  function switchTab(i) {
+  function switchTab(i, persist = true) {
     tabs.forEach((t, idx) => t.classList.toggle('active', idx === i));
     panes.forEach((p, idx) => p.classList.toggle('active', idx === i));
-    localStorage.setItem('rf-admin-tab', i);
+    if (persist) store.set('rf-admin-tab', i);
   }
 
-  const saved = parseInt(localStorage.getItem('rf-admin-tab') ?? '0', 10);
-  switchTab(isNaN(saved) ? 0 : saved);
+  switchTab(0, false);
+  store.ready.then(() => {
+    const saved = parseInt(store.get('rf-admin-tab') ?? '0', 10);
+    switchTab(isNaN(saved) ? 0 : saved, false);
+  });
 </script>
 
 </body>

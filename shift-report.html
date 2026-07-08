@@ -363,6 +363,7 @@
   </div>
 </div>
 
+<script src="storage.js"></script>
 <script>
 const STATION_TYPES = {
   UMI:       { label: 'UMI',       color: 'var(--umi)',       fields: ['count'] },
@@ -816,12 +817,12 @@ function collectData() {
 
 function saveCurrentDate() {
   if (!currentDate || isSwitchingDate) return;
-  localStorage.setItem(storageKey(currentDate), JSON.stringify(collectData()));
+  store.set(storageKey(currentDate), JSON.stringify(collectData()));
 }
 
 function loadDate(date) {
   isSwitchingDate = true;
-  const raw = localStorage.getItem(storageKey(date));
+  const raw = store.get(storageKey(date));
   const data = raw ? JSON.parse(raw) : null;
 
   document.getElementById('shift').value     = data?.shift     || 'Morning';
@@ -960,21 +961,23 @@ document.addEventListener('change', e => {
 
 // ---- Init ----
 
-// Recover records renamed by an old station-mode build (shift-report:DATE:SHIFT):
-// copy them back to the date-only keys this page reads. Leaves the renamed
-// copies in place for station mode to adopt; no-ops once nothing is left.
-Object.keys(localStorage)
-  .filter(k => /^shift-report:\d{4}-\d{2}-\d{2}:.+$/.test(k))
-  .forEach(k => {
-    const legacy = k.replace(/:[^:]+$/, '');
-    if (!localStorage.getItem(legacy)) localStorage.setItem(legacy, localStorage.getItem(k));
-  });
+store.ready.then(() => {
+  // Recover records renamed by an old station-mode build (shift-report:DATE:SHIFT):
+  // copy them back to the date-only keys this page reads. Leaves the renamed
+  // copies in place for station mode to adopt; no-ops once nothing is left.
+  store.keys()
+    .filter(k => /^shift-report:\d{4}-\d{2}-\d{2}:.+$/.test(k))
+    .forEach(k => {
+      const legacy = k.replace(/:[^:]+$/, '');
+      if (!store.get(legacy)) store.set(legacy, store.get(k));
+    });
 
-const today = new Date();
-const pad = n => String(n).padStart(2, '0');
-const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
-document.getElementById('reportDate').value = todayStr;
-loadDate(todayStr);
+  const today = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+  document.getElementById('reportDate').value = todayStr;
+  loadDate(todayStr);
+});
 </script>
 </body>
 </html>
