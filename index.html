@@ -258,6 +258,7 @@
 <script src="storage.js"></script>
 <script>
   const ADMIN_PASSWORD = 'robo4ever';
+  const ADMIN_TIMEOUT_MS = 5 * 60 * 1000; // auto-lock after 5 minutes of inactivity
 
   const tabs = document.querySelectorAll('.tab');
   const panes = document.querySelectorAll('.pane');
@@ -280,6 +281,7 @@
     if (passwordInput.value === ADMIN_PASSWORD) {
       sessionStorage.setItem('rf-admin-unlocked', '1');
       showAdmin();
+      recordAdminActivity();
     } else {
       gateError.textContent = 'Incorrect password.';
       passwordInput.classList.remove('error');
@@ -301,7 +303,9 @@
   }
 
   function lockAdmin() {
+    clearTimeout(adminTimer);
     sessionStorage.removeItem('rf-admin-unlocked');
+    sessionStorage.removeItem('rf-admin-last-activity');
     subnav.hidden = true;
     subpanes.forEach(p => {
       p.classList.remove('active');
@@ -320,7 +324,47 @@
     sessionStorage.setItem('rf-admin-subtab', i);
   }
 
-  if (sessionStorage.getItem('rf-admin-unlocked') === '1') showAdmin();
+  let adminTimer = null;
+  let lastActivityPersist = 0;
+
+  function isAdminUnlocked() {
+    return sessionStorage.getItem('rf-admin-unlocked') === '1';
+  }
+
+  function recordAdminActivity() {
+    if (!isAdminUnlocked()) return;
+    clearTimeout(adminTimer);
+    adminTimer = setTimeout(lockAdmin, ADMIN_TIMEOUT_MS);
+    const now = Date.now();
+    if (now - lastActivityPersist > 2000) {
+      sessionStorage.setItem('rf-admin-last-activity', String(now));
+      lastActivityPersist = now;
+    }
+  }
+
+  function attachActivityListeners(target) {
+    ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'].forEach(evt => {
+      target.addEventListener(evt, recordAdminActivity, { passive: true, capture: true });
+    });
+  }
+
+  attachActivityListeners(document);
+  document.querySelectorAll('iframe').forEach(frame => {
+    frame.addEventListener('load', () => {
+      try { attachActivityListeners(frame.contentWindow); } catch (e) { /* cross-origin, ignore */ }
+    });
+  });
+
+  if (isAdminUnlocked()) {
+    const last = parseInt(sessionStorage.getItem('rf-admin-last-activity') ?? '0', 10);
+    const elapsed = Date.now() - last;
+    if (!last || elapsed >= ADMIN_TIMEOUT_MS) {
+      lockAdmin();
+    } else {
+      showAdmin();
+      adminTimer = setTimeout(lockAdmin, ADMIN_TIMEOUT_MS - elapsed);
+    }
+  }
 
   switchTab(0, false);
   store.ready.then(() => {
