@@ -184,6 +184,15 @@
   input.station-label-input:hover { border-bottom-color: currentColor; opacity: 0.6; }
   input.station-label-input:focus { background: none; border-bottom-color: currentColor; box-shadow: none; opacity: 1; }
 
+  .station-header-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  input.station-task-input {
+    font-size: 11px; font-weight: 500; color: var(--text-3);
+    background: var(--surface); border: 1px dashed var(--border-mid);
+    border-radius: 6px; padding: 3px 8px; width: 120px;
+  }
+  input.station-task-input:focus { border-color: var(--accent); color: var(--text); background: #fff; box-shadow: none; }
+
   .station-table { width: 100%; border-collapse: collapse; }
 
   .station-table th {
@@ -279,12 +288,7 @@
 </head>
 <body>
 
-<datalist id="known-operators">
-  <option value="Jonathan">
-  <option value="Donovon">
-  <option value="Chai">
-  <option value="Ahmed">
-</datalist>
+<datalist id="known-operators"></datalist>
 
 <div class="container">
   <div class="page-header"><h1>Shift Report</h1></div>
@@ -378,6 +382,42 @@ const FIELD_LABELS = {
   count: 'Count', sessions: 'Sessions', avgTime: 'Avg (sec)', totalTime: 'Total (min)',
 };
 
+// Operator autocomplete: each shift has its own list of names.
+const SHIFT_OPERATORS = {
+  Morning:   ['Jonathan', 'Donovon', 'Chai', 'Ahmed', 'Johnny'],
+  Afternoon: [],
+  Night:     ['Charles', 'Will', 'Vic', 'Eric'],
+};
+
+function renderOperatorDatalist() {
+  const shift = document.getElementById('shift').value;
+  const names = SHIFT_OPERATORS[shift] || [];
+  const datalist = document.getElementById('known-operators');
+  datalist.innerHTML = names.map(n => `<option value="${esc(n)}">`).join('');
+}
+
+// Resolves the name shown in the Operator Summary / preview for a station's
+// task. Falls back to the station type's generic name when unset.
+function resolveTaskName(station) {
+  return (station.taskName || '').trim() || STATION_TYPES[station.type].label;
+}
+
+function taskKey(station) {
+  return `${station.type}::${resolveTaskName(station)}`;
+}
+
+function orderedTaskKeys() {
+  const keys = [];
+  const seen = new Set();
+  ['UMI', 'GELLO', 'INFERENCE'].forEach(type => {
+    stations.filter(s => s.type === type).forEach(s => {
+      const key = taskKey(s);
+      if (!seen.has(key)) { seen.add(key); keys.push(key); }
+    });
+  });
+  return keys;
+}
+
 let stations = [
   { id: 'umi-1', type: 'UMI', label: 'UMI Station 1' },
   { id: 'umi-2', type: 'UMI', label: 'UMI Station 2' },
@@ -407,6 +447,30 @@ function emptyRow(type) {
   const r = { name: '' };
   STATION_TYPES[type].fields.forEach(f => r[f] = '');
   return r;
+}
+
+// A row's count field (sessions/count), avgTime (sec), and totalTime (min)
+// are related by count * avgTime = totalTime * 60. If exactly one of the
+// three is left empty, fill it in from the other two — but never touch a
+// slot the operator has actually typed a value into.
+function deriveRowField(type, row) {
+  if (type === 'UMI') return;
+  const countField = type === 'GELLO' ? 'sessions' : 'count';
+
+  const countRaw = row[countField], avgRaw = row.avgTime, totalRaw = row.totalTime;
+  const countEmpty = countRaw === '' || countRaw == null;
+  const avgEmpty   = avgRaw === '' || avgRaw == null;
+  const totalEmpty = totalRaw === '' || totalRaw == null;
+
+  const count = parseFloat(countRaw), avg = parseFloat(avgRaw), total = parseFloat(totalRaw);
+
+  if (totalEmpty && !countEmpty && !avgEmpty && !isNaN(count) && !isNaN(avg)) {
+    row.totalTime = fmt(count * avg / 60);
+  } else if (avgEmpty && !countEmpty && !totalEmpty && !isNaN(count) && count !== 0 && !isNaN(total)) {
+    row.avgTime = fmt(total * 60 / count);
+  } else if (countEmpty && !avgEmpty && !totalEmpty && !isNaN(avg) && avg !== 0 && !isNaN(total)) {
+    row[countField] = fmt(total * 60 / avg);
+  }
 }
 
 function ensureRows(stationId, type) {
@@ -464,7 +528,24 @@ function buildStationBlock(station) {
     station.label = nameLine.value;
     saveCurrentDate();
   });
-  stationHeader.appendChild(nameLine);
+
+  const taskInput = document.createElement('input');
+  taskInput.type = 'text';
+  taskInput.className = 'station-task-input';
+  taskInput.placeholder = typeInfo.label;
+  taskInput.title = `Task name shown in the Operator Summary (defaults to "${typeInfo.label}" when empty)`;
+  taskInput.value = station.taskName || '';
+  taskInput.addEventListener('input', () => {
+    station.taskName = taskInput.value;
+    renderPersonSummary();
+    saveCurrentDate();
+  });
+
+  const leftWrap = document.createElement('div');
+  leftWrap.className = 'station-header-left';
+  leftWrap.appendChild(nameLine);
+  leftWrap.appendChild(taskInput);
+  stationHeader.appendChild(leftWrap);
 
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'btn-remove';
@@ -565,30 +646,31 @@ function collectUniqueNames() {
 function aggregateForPerson(name) {
   const agg = {};
   stations.forEach(s => {
-    const type = s.type;
-    if (!agg[type]) {
-      agg[type] = { _count: 0 };
-      STATION_TYPES[type].fields.forEach(f => agg[type][f] = 0);
+    const key = taskKey(s);
+    if (!agg[key]) {
+      agg[key] = { _count: 0, _type: s.type, _label: resolveTaskName(s) };
+      STATION_TYPES[s.type].fields.forEach(f => agg[key][f] = 0);
     }
     (stationRows[s.id] || []).forEach(row => {
       if ((row.name || '').trim() !== name) return;
-      STATION_TYPES[type].fields.forEach(f => {
+      STATION_TYPES[s.type].fields.forEach(f => {
         const v = parseFloat(row[f]);
-        if (!isNaN(v) && v > 0) agg[type][f] += v;
+        if (!isNaN(v) && v > 0) agg[key][f] += v;
       });
-      agg[type]._count++;
+      agg[key]._count++;
     });
   });
 
-  // Recompute GELLO avg from totalTime if possible
-  if (agg.GELLO && agg.GELLO._count > 0 && agg.GELLO.sessions > 0 && agg.GELLO.totalTime > 0) {
-    agg.GELLO.avgTime = Math.round(agg.GELLO.totalTime * 60 / agg.GELLO.sessions);
-  }
-
-  // Recompute Inference avg from totalTime if possible
-  if (agg.INFERENCE && agg.INFERENCE._count > 0 && agg.INFERENCE.count > 0 && agg.INFERENCE.totalTime > 0) {
-    agg.INFERENCE.avgTime = Math.round(agg.INFERENCE.totalTime * 60 / agg.INFERENCE.count);
-  }
+  Object.values(agg).forEach(a => {
+    // Recompute GELLO-shaped avg from totalTime if possible
+    if (a._type === 'GELLO' && a._count > 0 && a.sessions > 0 && a.totalTime > 0) {
+      a.avgTime = Math.round(a.totalTime * 60 / a.sessions);
+    }
+    // Recompute Inference-shaped avg from totalTime if possible
+    if (a._type === 'INFERENCE' && a._count > 0 && a.count > 0 && a.totalTime > 0) {
+      a.avgTime = Math.round(a.totalTime * 60 / a.count);
+    }
+  });
 
   return agg;
 }
@@ -621,18 +703,18 @@ function buildPersonBlock(name) {
   const statsDiv = document.createElement('div');
   statsDiv.className = 'person-stats';
 
-  ['GELLO', 'UMI', 'INFERENCE'].forEach(type => {
-    const a = agg[type];
+  orderedTaskKeys().forEach(key => {
+    const a = agg[key];
     if (!a || a._count === 0) return;
-    const typeInfo = STATION_TYPES[type];
+    const typeInfo = STATION_TYPES[a._type];
 
     let statStr;
-    if (type === 'GELLO') {
+    if (a._type === 'GELLO') {
       const sessions = fmt(a.sessions || 0) !== '0' ? fmt(a.sessions) : '—';
       const avg      = a.avgTime > 0 ? fmt(a.avgTime) : '—';
       const total    = a.totalTime > 0 ? fmt(a.totalTime) : '—';
       statStr = `${sessions} sessions / ${avg} avg sec / ${total} min`;
-    } else if (type === 'INFERENCE') {
+    } else if (a._type === 'INFERENCE') {
       const count = a.count > 0 ? fmt(a.count) : '—';
       const avg   = a.avgTime > 0 ? fmt(a.avgTime) : '—';
       const total = a.totalTime > 0 ? fmt(a.totalTime) : '—';
@@ -643,7 +725,7 @@ function buildPersonBlock(name) {
 
     const chip = document.createElement('div');
     chip.className = 'person-stat';
-    chip.innerHTML = `<span class="person-stat-label" style="color:${typeInfo.color}">${esc(typeInfo.label)}</span><span class="person-stat-value">${esc(statStr)}</span>`;
+    chip.innerHTML = `<span class="person-stat-label" style="color:${typeInfo.color}">${esc(a._label)}</span><span class="person-stat-value">${esc(statStr)}</span>`;
     statsDiv.appendChild(chip);
   });
   div.appendChild(statsDiv);
@@ -799,7 +881,7 @@ function addStation(type) {
     id = `ur-${stationCounts.UR}`;
     label = `UR${stationCounts.UR}`;
   }
-  stations.push({ id, type, label });
+  stations.push({ id, type, label, taskName: '' });
   stationRows[id] = [emptyRow(type)];
   renderStations();
   renderAnalysis();
@@ -838,7 +920,7 @@ function collectData() {
   syncStationInputs();
   return {
     shift:        currentShift,
-    stations:     stations.map(({ id, type, label }) => ({ id, type, label })),
+    stations:     stations.map(({ id, type, label, taskName }) => ({ id, type, label, taskName })),
     stationCounts,
     stationRows,
     personExtras,
@@ -860,6 +942,7 @@ function loadReport(date, shift) {
   const data = raw ? JSON.parse(raw) : null;
 
   document.getElementById('shift').value     = shift;
+  renderOperatorDatalist();
   document.getElementById('keyEvents').value = data?.keyEvents || '';
   document.getElementById('issues').value    = data?.issues    || '';
   document.getElementById('actions').value   = data?.actions   || '';
@@ -924,21 +1007,21 @@ function generatePreview(save = true) {
     const extras = personExtras[name] || {};
     lines.push(`- ${name}`);
 
-    ['GELLO', 'UMI', 'INFERENCE'].forEach(type => {
-      const a = agg[type];
+    orderedTaskKeys().forEach(key => {
+      const a = agg[key];
       if (!a || a._count === 0) return;
-      if (type === 'GELLO') {
+      if (a._type === 'GELLO') {
         const sessions = fmt(a.sessions || 0) !== '0' ? fmt(a.sessions) : '—';
         const avg      = a.avgTime > 0 ? fmt(a.avgTime) : '—';
         const total    = a.totalTime > 0 ? fmt(a.totalTime) : '—';
-        lines.push(`  - GELLO (Sessions/Avg sec/Total min): ${sessions}/${avg}/${total}`);
-      } else if (type === 'INFERENCE') {
+        lines.push(`  - ${a._label} (Sessions/Avg sec/Total min): ${sessions}/${avg}/${total}`);
+      } else if (a._type === 'INFERENCE') {
         const count = a.count > 0 ? fmt(a.count) : '—';
         const avg   = a.avgTime > 0 ? fmt(a.avgTime) : '—';
         const total = a.totalTime > 0 ? fmt(a.totalTime) : '—';
-        lines.push(`  - Inference (Count/Avg sec/Total min): ${count}/${avg}/${total}`);
+        lines.push(`  - ${a._label} (Count/Avg sec/Total min): ${count}/${avg}/${total}`);
       } else {
-        lines.push(`  - ${STATION_TYPES[type].label}: ${a.count > 0 ? fmt(a.count) : '—'}`);
+        lines.push(`  - ${a._label}: ${a.count > 0 ? fmt(a.count) : '—'}`);
       }
     });
 
@@ -989,8 +1072,24 @@ document.addEventListener('input', e => {
   if (e.target.classList.contains('station-input')) {
     const { station, row, field } = e.target.dataset;
     const idx = parseInt(row);
-    if (stationRows[station] && stationRows[station][idx] !== undefined) {
-      stationRows[station][idx][field] = e.target.value;
+    const rowData = stationRows[station] && stationRows[station][idx];
+    if (rowData !== undefined) {
+      rowData[field] = e.target.value;
+      if (field !== 'name') {
+        const s = stations.find(x => x.id === station);
+        if (s) {
+          deriveRowField(s.type, rowData);
+          STATION_TYPES[s.type].fields.forEach(f => {
+            if (f === field) return;
+            const otherInput = document.querySelector(
+              `.station-input[data-station="${station}"][data-row="${idx}"][data-field="${f}"]`
+            );
+            if (otherInput && otherInput.value !== String(rowData[f] ?? '')) {
+              otherInput.value = rowData[f] ?? '';
+            }
+          });
+        }
+      }
     }
     renderPersonSummary();
     renderAnalysis();
