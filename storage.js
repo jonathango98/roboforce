@@ -27,7 +27,7 @@ const store = (() => {
   // Keys we own; also the filter for the one-time localStorage migration.
   // Covers both main (rf-admin-tab, shift-report:*) and station mode
   // (rf-station-tab, station-report:*) so the file is identical on both branches.
-  const KEY_PATTERN = /^(rf-admin-tab$|rf-station-tab$|timesheet_|shift-report:|station-report:)/;
+  const KEY_PATTERN = /^(rf-admin-tab$|rf-station-tab$|shift-report:|station-report:)/;
 
   // ---- Connection banner ----
   let online = true;
