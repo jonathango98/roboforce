@@ -10,22 +10,25 @@ Now the station prints one line, and the Shift Report takes that line.
 ## At the station
 
 ```
-python3 stats.py --code --name UR1            # today, GELLO mode
-python3 stats.py --code --name UR1 -i         # today, inference mode
-python3 stats.py --code --name UR1 -t 1       # yesterday
-python3 stats.py --code --name UR1 | pbcopy   # straight to the clipboard
+python3 stats.py --code --name UR1   # names this station, and remembers it
+python3 stats.py --code              # every run after — today's numbers
+python3 stats.py --code -t 1         # yesterday
+python3 stats.py --code | pbcopy     # straight to the clipboard
 ```
 
 `--code` (also spelled `--hash`) prints the code alone on stdout and a one-line
-check — station, mode, date, operator count — on stderr, so piping stays clean.
-It covers **today** unless `-t` says otherwise, since a code stands for one day's
+check — station, date, operator count — on stderr, so piping stays clean. It
+covers **today** unless `-t` says otherwise, since a code stands for one day's
 report rather than the all-time scan a bare run does.
 
-`--name` defaults to the machine's hostname. Set it to the label the Shift Report
-uses for that station and the code lands on the right block by itself.
+`--name` is given once per machine: it writes the name to `~/.rf-station` and
+later runs read it back. Set it to the label the Shift Report uses for that
+station and the code lands on the right block by itself. `$RF_STATION` overrides
+for a single run without overwriting the saved name; failing all of those, the
+code carries the hostname.
 
 The interactive TUI (`stats.py` with no arguments) has the same thing on the **`c`**
-key: it shows the code, `n` renames the station, `i` toggles GELLO/inference, and
+key: it shows the code, `n` sets the station name (saving it the same way), and
 `c` again copies it (via `pbcopy`, `wl-copy`, `xclip`, or `xsel` — whichever the
 station has).
 
@@ -54,9 +57,10 @@ day, so merging would strand operators who no longer appear.
               "ops":[{"n":"Ahmed","sessions":59,"avgSec":51.42,"totalMin":50.57}]}]}
 ```
 
-`mode` picks the station type (`gello` → GELLO, `inference` → Inference); `host` is
-`--name`. An operator whose sessions have no readable duration carries `sessions`
-only, leaving the time cells empty for `deriveRowField` to fill.
+`mode` picks the station type and `host` is the station name. stats.py only emits
+`gello` for now; the importer still understands `inference` → Inference, so codes
+carrying it keep working. An operator whose sessions have no readable duration
+carries `sessions` only, leaving the time cells empty for `deriveRowField` to fill.
 
 A run only ever produces one station, but the envelope holds a list so a single
 code and a combined multi-station one decode through the same path. The importer
