@@ -216,6 +216,52 @@
 
   .add-station-row { display: flex; gap: 8px; flex-wrap: wrap; }
 
+  /* ---- Paste-a-stats-code import ---- */
+
+  .import-panel { display: flex; flex-direction: column; gap: 10px; }
+
+  .import-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+  .import-note { font-size: 12px; color: var(--text-3); }
+
+  .import-status { font-size: 12px; font-weight: 600; }
+  .import-status.ok { color: #166534; }
+
+  .import-body {
+    border: 1px solid var(--border); border-radius: 10px; background: var(--surface-sub);
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .import-body[hidden] { display: none; }
+
+  textarea.import-input {
+    width: 100%; min-height: 64px; resize: vertical;
+    font-family: 'SF Mono', 'Fira Mono', 'Consolas', monospace; font-size: 12px;
+    line-height: 1.5; word-break: break-all;
+  }
+
+  .import-preview { display: flex; flex-direction: column; gap: 8px; }
+
+  .import-row {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 8px 10px;
+  }
+
+  .import-row-label { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+
+  .import-row-detail { font-size: 12px; color: var(--text-2); flex: 1; min-width: 140px; }
+
+  .import-row select { width: 180px; font-size: 13px; padding: 5px 8px; }
+
+  .import-row-arrow { color: var(--text-3); font-size: 12px; }
+
+  .import-row.bad { border-color: #fca5a5; background: #fef2f2; }
+  .import-row.bad .import-row-detail { color: #b91c1c; }
+
+  .import-warn { font-size: 12px; color: #b45309; }
+
+  .import-actions { display: flex; gap: 8px; align-items: center; }
+
   /* ---- Person summary styles ---- */
 
   .person-block {
@@ -320,6 +366,23 @@
       <button class="btn btn-secondary btn-sm" onclick="addStation('UMI')">+ UMI Station</button>
       <button class="btn btn-secondary btn-sm" onclick="addStation('GELLO')">+ GELLO Station</button>
       <button class="btn btn-secondary btn-sm" onclick="addStation('INFERENCE')">+ Inference Station</button>
+    </div>
+
+    <div class="import-panel">
+      <div class="import-head">
+        <button class="btn btn-secondary btn-sm" id="importToggle" onclick="toggleImport()">Paste stats code</button>
+        <span class="import-note">Fills a station from <code>stats.py --code</code></span>
+        <span class="import-status" id="importStatus"></span>
+      </div>
+      <div class="import-body" id="importBody" hidden>
+        <textarea class="import-input" id="importInput" spellcheck="false"
+                  placeholder="Paste one or more RF1:... codes — one per line"></textarea>
+        <div class="import-preview" id="importPreview"></div>
+        <div class="import-actions">
+          <button class="btn btn-primary btn-sm" id="importApply" onclick="applyImport()" disabled>Import</button>
+          <button class="btn btn-secondary btn-sm" onclick="clearImport()">Clear</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -894,6 +957,227 @@ function updatePersonExtra(name, field, value) {
   saveCurrentDate();
 }
 
+// ---- Import from stats.py ----
+//
+// `stats.py --code` prints one RF1: line per station run. Pasting it here fills that
+// station's operator rows in, so numbers read off a station terminal are never retyped.
+// A code names the station it came from and the mode it ran in; the mode decides which
+// station type it lands on, and the name preselects a matching block when there is one.
+// Nothing is written until Import is pressed, so a paste can always be looked over first.
+
+const IMPORT_PREFIX = 'RF1:';
+const MODE_TYPES = { gello: 'GELLO', inference: 'INFERENCE' };
+
+// One entry per station carried by the pasted codes:
+// { type, host, ops, date, target } — target is a station id, or '' for "create a new block".
+let importEntries = [];
+
+function toggleImport() {
+  const body = document.getElementById('importBody');
+  body.hidden = !body.hidden;
+  if (!body.hidden) {
+    parseImportInput();
+    document.getElementById('importInput').focus();
+  }
+}
+
+function clearImport() {
+  document.getElementById('importInput').value = '';
+  parseImportInput();
+}
+
+function b64urlDecode(s) {
+  s = s.replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  return new TextDecoder().decode(Uint8Array.from(atob(s), c => c.charCodeAt(0)));
+}
+
+// Errors worth showing verbatim are marked; anything else (a base64 or JSON fault)
+// means the line itself is damaged, and gets the generic "copy it again" wording.
+function importError(msg) {
+  const err = new Error(msg);
+  err.friendly = true;
+  return err;
+}
+
+// Decode one pasted line. Throws with a reason the preview can show, rather than
+// dropping a bad line silently — a half-copied code is the likely mistake.
+function decodeStatsCode(line) {
+  const text = line.trim();
+  let payload;
+  if (text.startsWith('{')) {
+    payload = JSON.parse(text);
+  } else {
+    if (!text.toUpperCase().startsWith(IMPORT_PREFIX)) {
+      throw importError('not a stats code — expected a line starting with RF1:');
+    }
+    payload = JSON.parse(b64urlDecode(text.slice(IMPORT_PREFIX.length)));
+  }
+  if (payload.type !== 'shift-import' || !Array.isArray(payload.stations)) {
+    throw importError('not a shift report code');
+  }
+  return payload;
+}
+
+function parseImportInput() {
+  const lines = document.getElementById('importInput').value.split('\n')
+    .map(l => l.trim()).filter(Boolean);
+
+  importEntries = [];
+  const errors = [];
+
+  lines.forEach((line, i) => {
+    let payload;
+    try {
+      payload = decodeStatsCode(line);
+    } catch (e) {
+      const why = e && e.friendly ? e.message
+        : 'unreadable — copy the whole line, from RF1: to the end';
+      errors.push(`Line ${i + 1}: ${why}`);
+      return;
+    }
+    payload.stations.forEach(sp => {
+      const type = MODE_TYPES[sp.mode] || 'GELLO';
+      const host = String(sp.host || '').trim() || 'Unnamed';
+      const match = stations.find(s =>
+        s.type === type && (s.label || '').trim().toLowerCase() === host.toLowerCase());
+      importEntries.push({
+        type, host,
+        ops: Array.isArray(sp.ops) ? sp.ops : [],
+        date: payload.date || '',
+        target: match ? match.id : '',
+      });
+    });
+  });
+
+  renderImportPreview(errors);
+}
+
+function renderImportPreview(errors) {
+  const box = document.getElementById('importPreview');
+  box.innerHTML = '';
+  const reportDate = document.getElementById('reportDate').value;
+
+  errors.forEach(msg => {
+    const div = document.createElement('div');
+    div.className = 'import-row bad';
+    const detail = document.createElement('div');
+    detail.className = 'import-row-detail';
+    detail.textContent = msg;
+    div.appendChild(detail);
+    box.appendChild(div);
+  });
+
+  importEntries.forEach((entry, idx) => {
+    const div = document.createElement('div');
+    div.className = 'import-row';
+
+    const label = document.createElement('div');
+    label.className = 'import-row-label';
+    label.style.color = STATION_TYPES[entry.type].color;
+    label.textContent = entry.host;
+    div.appendChild(label);
+
+    const names = entry.ops.map(op => String(op.n || op.name || '').trim()).filter(Boolean);
+    const detail = document.createElement('div');
+    detail.className = 'import-row-detail';
+    detail.textContent = `${STATION_TYPES[entry.type].label} · ${entry.ops.length} operator(s)`
+      + (names.length ? ` — ${names.join(', ')}` : '');
+    div.appendChild(detail);
+
+    const arrow = document.createElement('span');
+    arrow.className = 'import-row-arrow';
+    arrow.textContent = '→';
+    div.appendChild(arrow);
+
+    // Only stations of the code's own type are offered, so a GELLO run can never
+    // be dropped into a block whose columns mean something else.
+    const select = document.createElement('select');
+    stations.filter(s => s.type === entry.type).forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = (s.label || s.id).trim() || s.id;
+      select.appendChild(opt);
+    });
+    const newOpt = document.createElement('option');
+    newOpt.value = '';
+    newOpt.textContent = `+ New ${STATION_TYPES[entry.type].label} "${entry.host}"`;
+    select.appendChild(newOpt);
+    select.value = entry.target;
+    select.addEventListener('change', () => { importEntries[idx].target = select.value; });
+    div.appendChild(select);
+
+    if (entry.date && reportDate && entry.date !== reportDate) {
+      const warn = document.createElement('div');
+      warn.className = 'import-warn';
+      warn.textContent = `Code is for ${entry.date}, report is ${reportDate}`;
+      div.appendChild(warn);
+    }
+
+    box.appendChild(div);
+  });
+
+  document.getElementById('importApply').disabled = importEntries.length === 0;
+}
+
+// Numbers arrive as JSON numbers but rows hold strings, the same as typed input.
+// Anything missing or unreadable stays empty so deriveRowField can still fill it.
+function importNumText(v) {
+  const n = parseFloat(v);
+  return Number.isFinite(n) ? String(parseFloat(n.toFixed(2))) : '';
+}
+
+function rowFromOp(type, op) {
+  const row = emptyRow(type);
+  row.name = String(op.n || op.name || '').trim();
+  const countField = type === 'GELLO' ? 'sessions' : 'count';
+  if (countField in row) row[countField] = importNumText(op.sessions != null ? op.sessions : op.count);
+  if ('avgTime' in row) row.avgTime = importNumText(op.avgSec);
+  if ('totalTime' in row) row.totalTime = importNumText(op.totalMin);
+  return row;
+}
+
+function applyImport() {
+  if (!importEntries.length) return;
+  syncStationInputs();
+
+  let opCount = 0;
+  importEntries.forEach(entry => {
+    let station = entry.target ? stations.find(s => s.id === entry.target) : null;
+    if (!station) {
+      // Same id scheme as addStation(): GELLO and Inference both live on UR machines.
+      stationCounts.UR++;
+      station = { id: `ur-${stationCounts.UR}`, type: entry.type, label: entry.host, taskName: '' };
+      stations.push(station);
+    }
+    // A station's rows are replaced outright — a code is the whole day for that
+    // station, so merging would leave stale operators behind.
+    stationRows[station.id] = entry.ops.map(op => rowFromOp(station.type, op));
+    opCount += entry.ops.length;
+    ensureRows(station.id, station.type);
+  });
+
+  const stationCount = importEntries.length;
+  renderStations();
+  renderPersonSummary();
+  renderAnalysis();
+  saveCurrentDate();
+
+  document.getElementById('importInput').value = '';
+  parseImportInput();
+  document.getElementById('importBody').hidden = true;
+  showImportStatus(`Imported ${stationCount} station(s), ${opCount} operator(s).`);
+}
+
+function showImportStatus(msg) {
+  const el = document.getElementById('importStatus');
+  el.textContent = msg;
+  el.className = 'import-status ok';
+  setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 6000);
+}
+
+document.getElementById('importInput').addEventListener('input', parseImportInput);
+
 // ---- Persistence ----
 
 // Station mode keeps its records in a separate namespace so it never
@@ -980,6 +1264,9 @@ function loadReport(date, shift) {
   renderPersonSummary();
   renderAnalysis();
   generatePreview(false);
+  // A pending paste points at station ids from the report that was open; re-decode
+  // it so its targets refer to this one's blocks instead.
+  parseImportInput();
 }
 
 // ---- Preview ----
