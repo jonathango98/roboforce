@@ -376,7 +376,7 @@
       </div>
       <div class="import-body" id="importBody" hidden>
         <textarea class="import-input" id="importInput" spellcheck="false"
-                  placeholder="Paste one or more RF1:... codes — one per line"></textarea>
+                  placeholder="Paste one or more RF2:... codes — one per line"></textarea>
         <div class="import-preview" id="importPreview"></div>
         <div class="import-actions">
           <button class="btn btn-primary btn-sm" id="importApply" onclick="applyImport()" disabled>Import</button>
@@ -959,14 +959,20 @@ function updatePersonExtra(name, field, value) {
 
 // ---- Import from stats.py ----
 //
-// `stats.py --code` prints one RF1: line per station run. Pasting it here fills that
+// `stats.py --code` prints one RF2: line per station run. Pasting it here fills that
 // station's operator rows in, so numbers read off a station terminal are never retyped.
 // A code names the station it came from and the mode it ran in; the mode decides which
 // station type it lands on, and the name preselects a matching block when there is one.
 // Nothing is written until Import is pressed, so a paste can always be looked over first.
 
 const IMPORT_PREFIX = 'RF1:';
+// RF2 carries the same payload packed as binary rather than JSON, roughly five times
+// shorter, which is what makes a station's code small enough to put on screen as a QR
+// code for a phone to scan. RF1 codes still import — stations are updated one at a time.
+const IMPORT_PREFIX_V2 = 'RF2:';
 const MODE_TYPES = { gello: 'GELLO', inference: 'INFERENCE' };
+// Index order is the RF2 mode byte, so this list is appended to, never reordered.
+const RF2_MODES = ['gello', 'inference'];
 
 // One entry per station carried by the pasted codes:
 // { type, host, ops, date, target } — target is a station id, or '' for "create a new block".
@@ -986,10 +992,78 @@ function clearImport() {
   parseImportInput();
 }
 
-function b64urlDecode(s) {
+function b64urlBytes(s) {
   s = s.replace(/-/g, '+').replace(/_/g, '/');
   while (s.length % 4) s += '=';
-  return new TextDecoder().decode(Uint8Array.from(atob(s), c => c.charCodeAt(0)));
+  return Uint8Array.from(atob(s), c => c.charCodeAt(0));
+}
+
+function b64urlDecode(s) {
+  return new TextDecoder().decode(b64urlBytes(s));
+}
+
+// Unpack an RF2 body into the same payload shape RF1 carries as JSON, so everything
+// downstream of decodeStatsCode stays the same. Layout, all big-endian:
+//   version byte, date uint16 ((year-2020)<<9 | month<<5 | day), station count byte,
+//   then per station: mode byte, length-prefixed host, varint operator count, and per
+//   operator a length-prefixed name, varint sessions, varint avgSec in hundredths
+//   (0 when no session had a readable duration) and, unless that was 0, varint
+//   totalMin in hundredths.
+function decodeRf2(code) {
+  const bytes = b64urlBytes(code);
+  let at = 0;
+  const utf8 = new TextDecoder();
+
+  function byte() {
+    if (at >= bytes.length) throw importError('the code is cut short — copy the whole line');
+    return bytes[at++];
+  }
+  function varint() {
+    let value = 0, shift = 0;
+    for (;;) {
+      const b = byte();
+      value |= (b & 0x7f) << shift;
+      if (!(b & 0x80)) return value >>> 0;
+      shift += 7;
+      if (shift > 28) throw importError('the code is damaged');
+    }
+  }
+  function text() {
+    const len = byte();
+    if (at + len > bytes.length) throw importError('the code is cut short — copy the whole line');
+    const s = utf8.decode(bytes.subarray(at, at + len));
+    at += len;
+    return s;
+  }
+
+  const version = byte();
+  if (version !== 2) throw importError(`stats code version ${version} is newer than this page — update the Shift Report`);
+
+  const packedDate = (byte() << 8) | byte();
+  const year = (packedDate >> 9) + 2020;
+  const month = (packedDate >> 5) & 0x0f;
+  const day = packedDate & 0x1f;
+  const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+  const stations = [];
+  const stationCount = byte();
+  for (let s = 0; s < stationCount; s++) {
+    const mode = RF2_MODES[byte()] || RF2_MODES[0];
+    const host = text();
+    const ops = [];
+    const opCount = varint();
+    for (let i = 0; i < opCount; i++) {
+      const op = { n: text(), sessions: varint() };
+      const avgHundredths = varint();
+      if (avgHundredths) {
+        op.avgSec = avgHundredths / 100;
+        op.totalMin = varint() / 100;
+      }
+      ops.push(op);
+    }
+    stations.push({ mode, host, ops });
+  }
+  return { v: 1, type: 'shift-import', date, stations };
 }
 
 // Errors worth showing verbatim are marked; anything else (a base64 or JSON fault)
@@ -1004,14 +1078,16 @@ function importError(msg) {
 // dropping a bad line silently — a half-copied code is the likely mistake.
 function decodeStatsCode(line) {
   const text = line.trim();
+  const upper = text.toUpperCase();
   let payload;
   if (text.startsWith('{')) {
     payload = JSON.parse(text);
-  } else {
-    if (!text.toUpperCase().startsWith(IMPORT_PREFIX)) {
-      throw importError('not a stats code — expected a line starting with RF1:');
-    }
+  } else if (upper.startsWith(IMPORT_PREFIX_V2)) {
+    payload = decodeRf2(text.slice(IMPORT_PREFIX_V2.length));
+  } else if (upper.startsWith(IMPORT_PREFIX)) {
     payload = JSON.parse(b64urlDecode(text.slice(IMPORT_PREFIX.length)));
+  } else {
+    throw importError('not a stats code — expected a line starting with RF2: or RF1:');
   }
   if (payload.type !== 'shift-import' || !Array.isArray(payload.stations)) {
     throw importError('not a shift report code');
@@ -1032,7 +1108,7 @@ function parseImportInput() {
       payload = decodeStatsCode(line);
     } catch (e) {
       const why = e && e.friendly ? e.message
-        : 'unreadable — copy the whole line, from RF1: to the end';
+        : 'unreadable — copy the whole line, from RF2: or RF1: to the end';
       errors.push(`Line ${i + 1}: ${why}`);
       return;
     }
